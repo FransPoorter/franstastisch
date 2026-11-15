@@ -158,6 +158,7 @@ summary{cursor:pointer;font-weight:700}
   <h1>HYROX-simulatie</h1>
   <span class="clock num" id="clock">--:--</span>
   <span class="status" id="appStatus" role="status" aria-live="polite"></span>
+  <a class="page-link" href="/hyroxsimulatiedemo">Demo</a>
   <a class="page-link" href="/circuitbuilder">Circuit builder</a>
   <button class="resetall" id="resetall">Reset</button>
   <nav class="tabs" aria-label="Weergave">
@@ -168,6 +169,11 @@ summary{cursor:pointer;font-weight:700}
 </header>
 
 <main>
+  <aside class="panel" id="demoBanner" hidden>
+    <h2>HYROX-simulatie demo</h2>
+    <p>Dit is een voorbeeld met ingevulde teams en fictieve racetijden. Je kunt de doelplannen, uitslagen en analyses bekijken; er wordt niets in je persoonlijke simulatie opgeslagen.</p>
+    <a class="page-link" href="/hyroxsimulatie">Naar mijn timer</a>
+  </aside>
   <section id="v-timer"><div class="grid" id="grid"></div></section>
 
   <section id="v-uitslag" hidden><div class="panel res" id="res"></div></section>
@@ -205,9 +211,39 @@ summary{cursor:pointer;font-weight:700}
   };
   const BENCHMARK_SOURCE="https://pmc.ncbi.nlm.nih.gov/articles/PMC13409289/";
   const N=SEGS.length, KEY="hyrox-sim-v1";
+  const DEMO=new URLSearchParams(location.search).has("demo");
   const DEFAULT_SETTINGS={runPct:70,stationPct:100,runCorr:3,rox:20};
   const SETTING_LIMITS={runPct:[10,100],stationPct:[10,100],runCorr:[0,20],rox:[0,90]};
   const mkTeam=i=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:"Team "+i,start:null,laps:[],plan:{goalSeconds:null,paceSeconds:null,division:"openMen"}});
+  function makeDemoTeam(id,name,divisionValue,goalSeconds,paceSeconds,adjustments){
+    const plan={goalSeconds,paceSeconds,division:divisionValue};
+    const profile=divisionValue.endsWith("Women")?BENCHMARKS.women:BENCHMARKS.men;
+    const budget=goalSeconds-paceSeconds*8-16*DEFAULT_SETTINGS.rox;
+    const weightTotal=profile.reduce((sum,weight)=>sum+weight,0);
+    const exact=profile.map(value=>budget*value/weightTotal);
+    const stations=exact.map(Math.floor);
+    let remaining=budget-stations.reduce((sum,seconds)=>sum+seconds,0);
+    exact.map((value,index)=>({index,remainder:value-stations[index]}))
+      .sort((a,b)=>b.remainder-a.remainder)
+      .slice(0,remaining)
+      .forEach(item=>stations[item.index]++);
+    let stationIndex=0;
+    const targets=SEGS.map((segment,index)=>index%2===0?paceSeconds:stations[stationIndex++]);
+    const segmentSeconds=targets.map((seconds,index)=>Math.max(20,seconds+adjustments[index]));
+    let elapsed=segmentSeconds.reduce((sum,seconds)=>sum+seconds,0);
+    const start=Date.now()-elapsed*1000;
+    let timestamp=start;
+    const laps=segmentSeconds.map(seconds=>(timestamp+=seconds*1000));
+    return {id,name,start,laps,plan,cfg:{runPct:100,stationPct:100}};
+  }
+  const DEMO_STATE={
+    settings:{...DEFAULT_SETTINGS},
+    teams:[
+      makeDemoTeam("demo-team-1","Team Tempo","openMen",4500,330,[12,18,8,35,16,24,10,42,12,20,18,12,16,28,20,55]),
+      makeDemoTeam("demo-team-2","Team Kracht","proWomen",4080,295,[-8,-5,-4,12,-7,18,-6,32,-5,-8,-3,-5,-4,15,-2,65]),
+      makeDemoTeam("demo-team-3","Team Volhouder","openWomen",5100,360,[35,20,28,45,38,50,42,70,44,32,55,18,60,55,65,95])
+    ]
+  };
   const status=document.getElementById("appStatus");
   const reportStorageError=message=>{status.textContent=message};
   function boundedSetting(value,key){
@@ -244,8 +280,10 @@ summary{cursor:pointer;font-weight:700}
   }
   let S;
   try{
-    const stored=JSON.parse(localStorage.getItem(KEY)||"null");
-    if(stored&&Array.isArray(stored.teams)){
+    const stored=DEMO?null:JSON.parse(localStorage.getItem(KEY)||"null");
+    if(DEMO){
+      S=DEMO_STATE;
+    }else if(stored&&Array.isArray(stored.teams)){
       const settings={};
       for(const key of Object.keys(DEFAULT_SETTINGS)){
         settings[key]=boundedSetting(stored.settings&&stored.settings[key],key);
@@ -266,6 +304,7 @@ summary{cursor:pointer;font-weight:700}
     S={settings:{...DEFAULT_SETTINGS},teams:[mkTeam(1)]};
   }
   const save=()=>{
+    if(DEMO)return;
     try{
       localStorage.setItem(KEY,JSON.stringify(S));
       status.textContent="";
@@ -396,6 +435,7 @@ summary{cursor:pointer;font-weight:700}
   }
   function renderCard(el,t){el.className="team"+(t.laps.length===N?" fin":(t.start?" live":""));el.innerHTML=cardHTML(t);wire(el,t)}
   function renderGrid(){
+    document.getElementById("demoBanner").hidden=!DEMO;
     grid.innerHTML="";
     S.teams.forEach(t=>{const el=document.createElement("article");el.dataset.id=t.id;grid.appendChild(el);renderCard(el,t)});
     const add=document.createElement("button");add.className="add";add.textContent="Team toevoegen";
@@ -592,7 +632,11 @@ summary{cursor:pointer;font-weight:700}
     if(b.dataset.view==="timer")renderGrid();
   });
 
-  renderGrid();setInterval(tick,250);
+  renderGrid();
+  if(DEMO){
+    document.querySelector('.tabs button[data-view="uitslag"]').click();
+  }
+  setInterval(tick,250);
 })();
 </script>
 </body>
