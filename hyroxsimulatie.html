@@ -67,10 +67,14 @@ main{padding:18px;max-width:1500px;margin:0 auto}
 .plan-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;background:var(--bg);border:1px solid var(--line)}
 .plan-fields label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted)}
 .plan-fields input,.plan-fields select{width:100%;padding:8px;border:1px solid var(--line);background:var(--surface);font-size:18px;font-weight:700;border-radius:0}
-.plan-fields .plan-message,.plan-fields .benchmark-note{grid-column:1/-1;margin:0;color:var(--muted);font-size:13px}
+.plan-fields .plan-message,.plan-fields .plan-hint{grid-column:1/-1;margin:0;color:var(--muted);font-size:13px}
 .plan-fields .plan-message.error{color:var(--orange)}
-.benchmark-note a,.source-note a{color:var(--orange)}
 .plan-preview{font-size:14px;color:var(--muted)}
+.plan-instructions{margin:0;color:var(--muted);font-size:14px}
+.nums .clock-hint{grid-column:1/-1;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:normal;font-weight:400}
+.source-details{border-top:1px solid var(--line);padding-top:10px}
+.source-details p{margin:8px 0 0;color:var(--muted);font-size:13px}
+.source-details a{color:var(--orange)}
 .strip{display:grid;grid-template-columns:repeat(16,1fr);gap:3px;align-items:end}
 .strip span{height:10px;background:var(--idle)}
 .strip span.s{height:18px}
@@ -141,7 +145,6 @@ summary{cursor:pointer;font-weight:700}
 .bar{display:block;height:8px;background:var(--run);min-width:2px}
 .bar.actual{background:var(--orange)}
 .bar-value{text-align:right;font-variant-numeric:tabular-nums}
-.source-note{font-size:13px;color:var(--muted);max-width:90ch}
 [aria-invalid="true"]{border-color:var(--orange)!important}
 [hidden]{display:none!important}
 @media (max-width:640px){.tabs{margin-left:0;width:100%}.tabs button{flex:1;padding:9px 6px}.top h1{display:none}}
@@ -158,7 +161,6 @@ summary{cursor:pointer;font-weight:700}
   <h1>HYROX-simulatie</h1>
   <span class="clock num" id="clock">--:--</span>
   <span class="status" id="appStatus" role="status" aria-live="polite"></span>
-  <a class="page-link" href="/hyroxsimulatiedemo">Demo</a>
   <a class="page-link" href="/circuitbuilder">Circuit builder</a>
   <button class="resetall" id="resetall">Reset</button>
   <nav class="tabs" aria-label="Weergave">
@@ -169,11 +171,6 @@ summary{cursor:pointer;font-weight:700}
 </header>
 
 <main>
-  <aside class="panel" id="demoBanner" hidden>
-    <h2>HYROX-simulatie demo</h2>
-    <p>Dit is een voorbeeld met ingevulde teams en fictieve racetijden. Je kunt de doelplannen, uitslagen en analyses bekijken; er wordt niets in je persoonlijke simulatie opgeslagen.</p>
-    <a class="page-link" href="/hyroxsimulatie">Naar mijn timer</a>
-  </aside>
   <section id="v-timer"><div class="grid" id="grid"></div></section>
 
   <section id="v-uitslag" hidden><div class="panel res" id="res"></div></section>
@@ -181,7 +178,7 @@ summary{cursor:pointer;font-weight:700}
   <section id="v-instellingen" hidden>
     <div class="panel">
       <h2>Simulatie en omrekening</h2>
-      <p>De racetijd wordt geschat zodra minstens één looponderdeel en één station zijn afgerond. De omrekening veronderstelt dat tijd evenredig verandert met loopafstand en stationvolume. De schatting voorspelt geen extra vertraging door vermoeidheid; de Roxzone blijft een vaste toeslag. Dit zijn de standaardwaarden voor alle teams; loopafstand en stationvolume pas je per team aan op de teamkaart.</p>
+      <p>Stel hier een korte trainingssimulatie in. Per team kun je loopafstand en stationvolume aanpassen. Het doelplan blijft uitgaan van de volledige HYROX-afstand.</p>
       <div class="field"><label for="runPct">Loopafstand in de simulatie (%)</label><span>70 betekent 700 m per run in plaats van 1 km.</span><input id="runPct" type="number" min="10" max="100" step="5" inputmode="numeric"></div>
       <div class="field"><label for="stationPct">Stationvolume in de simulatie (%)</label><span>100 betekent volledige afstanden en herhalingen.</span><input id="stationPct" type="number" min="10" max="100" step="5" inputmode="numeric"></div>
       <div class="field"><label for="runCorr">Vertraging over de volle loopafstand (%)</label><span>Op een langere run loop je iets trager. Telt alleen mee als de loopafstand onder 100% ligt.</span><input id="runCorr" type="number" min="0" max="20" step="1" inputmode="numeric"></div>
@@ -211,39 +208,9 @@ summary{cursor:pointer;font-weight:700}
   };
   const BENCHMARK_SOURCE="https://pmc.ncbi.nlm.nih.gov/articles/PMC13409289/";
   const N=SEGS.length, KEY="hyrox-sim-v1";
-  const DEMO=new URLSearchParams(location.search).has("demo");
   const DEFAULT_SETTINGS={runPct:70,stationPct:100,runCorr:3,rox:20};
   const SETTING_LIMITS={runPct:[10,100],stationPct:[10,100],runCorr:[0,20],rox:[0,90]};
   const mkTeam=i=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:"Team "+i,start:null,laps:[],plan:{goalSeconds:null,paceSeconds:null,division:"openMen"}});
-  function makeDemoTeam(id,name,divisionValue,goalSeconds,paceSeconds,adjustments){
-    const plan={goalSeconds,paceSeconds,division:divisionValue};
-    const profile=divisionValue.endsWith("Women")?BENCHMARKS.women:BENCHMARKS.men;
-    const budget=goalSeconds-paceSeconds*8-16*DEFAULT_SETTINGS.rox;
-    const weightTotal=profile.reduce((sum,weight)=>sum+weight,0);
-    const exact=profile.map(value=>budget*value/weightTotal);
-    const stations=exact.map(Math.floor);
-    let remaining=budget-stations.reduce((sum,seconds)=>sum+seconds,0);
-    exact.map((value,index)=>({index,remainder:value-stations[index]}))
-      .sort((a,b)=>b.remainder-a.remainder)
-      .slice(0,remaining)
-      .forEach(item=>stations[item.index]++);
-    let stationIndex=0;
-    const targets=SEGS.map((segment,index)=>index%2===0?paceSeconds:stations[stationIndex++]);
-    const segmentSeconds=targets.map((seconds,index)=>Math.max(20,seconds+adjustments[index]));
-    let elapsed=segmentSeconds.reduce((sum,seconds)=>sum+seconds,0);
-    const start=Date.now()-elapsed*1000;
-    let timestamp=start;
-    const laps=segmentSeconds.map(seconds=>(timestamp+=seconds*1000));
-    return {id,name,start,laps,plan,cfg:{runPct:100,stationPct:100}};
-  }
-  const DEMO_STATE={
-    settings:{...DEFAULT_SETTINGS},
-    teams:[
-      makeDemoTeam("demo-team-1","Team Tempo","openMen",4500,330,[12,18,8,35,16,24,10,42,12,20,18,12,16,28,20,55]),
-      makeDemoTeam("demo-team-2","Team Kracht","proWomen",4080,295,[-8,-5,-4,12,-7,18,-6,32,-5,-8,-3,-5,-4,15,-2,65]),
-      makeDemoTeam("demo-team-3","Team Volhouder","openWomen",5100,360,[35,20,28,45,38,50,42,70,44,32,55,18,60,55,65,95])
-    ]
-  };
   const status=document.getElementById("appStatus");
   const reportStorageError=message=>{status.textContent=message};
   function boundedSetting(value,key){
@@ -280,10 +247,8 @@ summary{cursor:pointer;font-weight:700}
   }
   let S;
   try{
-    const stored=DEMO?null:JSON.parse(localStorage.getItem(KEY)||"null");
-    if(DEMO){
-      S=DEMO_STATE;
-    }else if(stored&&Array.isArray(stored.teams)){
+    const stored=JSON.parse(localStorage.getItem(KEY)||"null");
+    if(stored&&Array.isArray(stored.teams)){
       const settings={};
       for(const key of Object.keys(DEFAULT_SETTINGS)){
         settings[key]=boundedSetting(stored.settings&&stored.settings[key],key);
@@ -304,7 +269,6 @@ summary{cursor:pointer;font-weight:700}
     S={settings:{...DEFAULT_SETTINGS},teams:[mkTeam(1)]};
   }
   const save=()=>{
-    if(DEMO)return;
     try{
       localStorage.setItem(KEY,JSON.stringify(S));
       status.textContent="";
@@ -358,7 +322,7 @@ summary{cursor:pointer;font-weight:700}
     const runSeconds=paceSeconds*8;
     const roxSeconds=16*S.settings.rox;
     const stationBudget=goalSeconds-runSeconds-roxSeconds;
-    if(stationBudget<=0)return {ok:false,message:`Niet haalbaar: 8 km lopen (${fmt(runSeconds*1000)}) plus Roxzone (${fmt(roxSeconds*1000)}) is al langer dan de streeftijd.`};
+    if(stationBudget<=0)return {ok:false,message:`Niet haalbaar: 8 km lopen en Roxzone kosten al ${fmt((runSeconds+roxSeconds)*1000)}. Kies een langere streeftijd of sneller tempo; er moet ook tijd overblijven voor de stations.`};
     const profile=division(t).gender==="women"?BENCHMARKS.women:BENCHMARKS.men;
     const weightTotal=profile.reduce((sum,value)=>sum+value,0);
     const exact=profile.map(value=>stationBudget*value/weightTotal);
@@ -395,18 +359,16 @@ summary{cursor:pointer;font-weight:700}
   function planHTML(t){
     const open=openPlan.has(t.id),plan=targetPlan(t);
     const invalid=!plan.ok&&plan.message.startsWith("Niet haalbaar:");
-    const preview=plan.ok
-      ?`Doel ${fmt(plan.goalSeconds*1000)} · lopen ${fmt(plan.runSeconds*1000)} · stations ${fmt(plan.stationBudget*1000)} · Roxzone ${fmt(plan.roxSeconds*1000)}`
-      :plan.message;
+    const preview=plan.ok?`Hardlopen ${fmt(plan.runSeconds*1000)} · stations ${fmt(plan.stationBudget*1000)} · Roxzone ${fmt(plan.roxSeconds*1000)}`:plan.message;
     return `<button class="planbtn${t.plan.goalSeconds&&t.plan.paceSeconds?" own":""}" aria-expanded="${open}">Doelplan instellen</button>
       <div class="plan-fields" ${open?"":"hidden"}>
-        <label for="goal-${esc(t.id)}">Streeftijd (HH:MM:SS of MM:SS)<input id="goal-${esc(t.id)}" type="text" data-plan="goalSeconds" inputmode="numeric" maxlength="8" placeholder="1:15:00" value="${timeInput(t.plan.goalSeconds,true)}"></label>
-        <label for="pace-${esc(t.id)}">Looptempo (MM:SS per km)<input id="pace-${esc(t.id)}" type="text" data-plan="paceSeconds" inputmode="numeric" maxlength="5" placeholder="5:30" value="${timeInput(t.plan.paceSeconds,false)}"></label>
+        <p class="plan-instructions">Vul je streeftijd en tempo in. Bijvoorbeeld <strong>1:15:00</strong> en <strong>5:30 per km</strong>.</p>
+        <label for="goal-${esc(t.id)}">Streeftijd<input id="goal-${esc(t.id)}" type="text" data-plan="goalSeconds" aria-describedby="plan-message-${esc(t.id)}" inputmode="numeric" maxlength="8" placeholder="1:15:00" value="${timeInput(t.plan.goalSeconds,true)}"></label>
+        <label for="pace-${esc(t.id)}">Hardlooptempo per km<input id="pace-${esc(t.id)}" type="text" data-plan="paceSeconds" aria-describedby="plan-message-${esc(t.id)}" inputmode="numeric" maxlength="5" placeholder="5:30" value="${timeInput(t.plan.paceSeconds,false)}"></label>
         <label for="division-${esc(t.id)}">Divisie<select id="division-${esc(t.id)}" data-plan-division>${DIVISIONS.map(item=>`<option value="${item.value}" ${item.value===t.plan.division?"selected":""}>${item.label}</option>`).join("")}</select></label>
-        <p class="plan-message${invalid?" error":""}" role="status">${esc(preview)}</p>
-        <p class="benchmark-note">De stations worden verdeeld met Pro/Elite-verhoudingen per geslacht. Open-specifieke openbare splitdata zijn niet gevonden; voor Open is dit dus nadrukkelijk een Pro/Elite-proxy. Roxzone gebruikt de instelling van deze simulator.</p>
+        <p class="plan-message${invalid?" error":""}" id="plan-message-${esc(t.id)}" role="status" aria-live="polite">${esc(plan.ok?preview:plan.message)}</p>
       </div>
-      <div class="plan-preview">${esc(preview)}</div>`;
+      <div class="plan-preview" aria-live="polite">${esc(plan.ok?preview:"Vul je doelplan in om de tijd per onderdeel te zien.")}</div>`;
   }
   function cfgHTML(t){
     const c=cfg(t),open=openCfg.has(t.id),own=custom(t);
@@ -428,14 +390,14 @@ summary{cursor:pointer;font-weight:700}
       ${planHTML(t)}
       <div class="strip" aria-hidden="true">${cells}</div>
       <div class="now"><span class="seg">${seg}</span><span class="segt num" data-segt></span></div>
-      <div class="nums"><div><b class="num" data-total>0:00</b><small>Gemeten tijd</small></div>
-      <div class="pred"><b class="num" data-pred>—</b><small>Geschatte racetijd (na 1 run + station)</small></div></div>
+      <div class="nums"><div><b class="num" data-total>0:00</b><small>Kloktijd</small></div>
+      <div class="pred"><b class="num" data-pred>—</b><small>Verwachte racetijd</small></div>
+      <small class="clock-hint">Verwachting beschikbaar na 1 run en 1 station. De racetijd telt Roxzone mee.</small></div>
       <button class="go ${bcls}" ${fin?"disabled":""}>${btn}</button>
       <button class="undo" ${n||started?"":"disabled"}>${n?"Laatste onderdeel ongedaan maken":"Start ongedaan maken"}</button>`;
   }
   function renderCard(el,t){el.className="team"+(t.laps.length===N?" fin":(t.start?" live":""));el.innerHTML=cardHTML(t);wire(el,t)}
   function renderGrid(){
-    document.getElementById("demoBanner").hidden=!DEMO;
     grid.innerHTML="";
     S.teams.forEach(t=>{const el=document.createElement("article");el.dataset.id=t.id;grid.appendChild(el);renderCard(el,t)});
     const add=document.createElement("button");add.className="add";add.textContent="Team toevoegen";
@@ -460,7 +422,7 @@ summary{cursor:pointer;font-weight:700}
       if(value&&!seconds){
         inp.setAttribute("aria-invalid","true");
         message.classList.add("error");
-        message.textContent=key==="goalSeconds"?"Gebruik MM:SS of HH:MM:SS; minuten en seconden zijn maximaal 59.":"Gebruik MM:SS per kilometer, bijvoorbeeld 5:30.";
+        message.textContent=key==="goalSeconds"?"Vul de streeftijd in als MM:SS (bijv. 75:00) of HH:MM:SS (bijv. 1:15:00).":"Vul je tempo in als MM:SS per kilometer (bijv. 5:30).";
         return;
       }
       inp.removeAttribute("aria-invalid");
@@ -543,8 +505,8 @@ summary{cursor:pointer;font-weight:700}
     const rows=S.teams.map(t=>({t,p:predict(t,now),n:t.laps.length})).sort((a,b)=>{
       if(a.p==null)return 1;if(b.p==null)return -1;return a.p-b.p});
     let h=`<h2 style="font-size:26px;margin:0">Uitslag</h2>
-      <p style="margin:0;color:var(--muted)">Gesorteerd op geschatte racetijd. Een schatting verschijnt na minstens één afgeronde run en één afgerond station; de omrekening gaat uit van evenredige tijd per volume en voorspelt geen extra vermoeidheid. Standaard: lopen ${S.settings.runPct}%, stations ${S.settings.stationPct}%.</p>
-      <div class="wrap"><table><thead><tr><th>Team</th><th>Lopen / stations</th><th class="n">Onderdelen</th><th class="n">Gemeten</th><th class="n">Verwachte racetijd</th></tr></thead><tbody>`;
+      <p style="margin:0;color:var(--muted)">Je racetijd wordt tijdens de simulatie steeds bijgewerkt. De kloktijd telt geen Roxzone mee.</p>
+      <div class="wrap"><table><thead><tr><th>Team</th><th>Lopen / stations</th><th class="n">Onderdelen</th><th class="n">Kloktijd</th><th class="n">Racetijd incl. Roxzone</th></tr></thead><tbody>`;
     rows.forEach(r=>{const end=r.n===N?r.t.laps[N-1]:now;
       h+=`<tr data-result-team="${esc(r.t.id)}"><td>${esc(r.t.name)}</td><td>${cfg(r.t).runPct}% / ${cfg(r.t).stationPct}%</td><td class="n">${r.n}/${N}</td><td class="n" data-result-total>${r.t.start?fmt(end-r.t.start):"—"}</td><td class="n big" data-result-pred>${fmt(r.p)}</td></tr>`});
     h+=`</tbody></table></div>`;
@@ -592,20 +554,19 @@ summary{cursor:pointer;font-weight:700}
       </div></li>`;
     }).join("");
     const table=actualRows.map(row=>`<tr><td>${esc(row.name)}</td><td class="n">${fmt(row.target*1000)}</td><td class="n">${fmt(row.actual*1000)}</td><td class="n">${signed(row.actual-row.target)}</td></tr>`).join("");
-    const insights=overTarget.length
-      ?`<p><strong>Grootste afwijkingen t.o.v. het plan:</strong> ${overTarget.map(row=>`${esc(row.name)} ${signed(row.actual-row.target)}`).join("; ")}. Dit zijn aandachtspunten, geen gegarandeerde tijdwinst.</p>`
-      :`<p>Geen onderdeel ligt meer dan 30 seconden boven de richttijd.</p>`;
     return `<section class="plan-analysis">
       <h3>Doelplan en analyse: ${esc(t.name)}</h3>
-      <p>Divisie ${plan.division.label} · tempo ${timeInput(plan.paceSeconds,false)}/km · doel ${fmt(plan.goalSeconds*1000)}. De gemeten onderdelen zijn omgerekend naar volledige volumes.</p>
-      <p>Gemeten totaal ${fmt(actualTotal*1000)} tegenover doel ${fmt(plan.goalSeconds*1000)} (${signed(delta)}). Een positieve afwijking betekent langzamer dan gepland.</p>
-      ${insights}
+      <p>Doel ${fmt(plan.goalSeconds*1000)} · tempo ${timeInput(plan.paceSeconds,false)}/km · ${plan.division.label}.</p>
+      <p>${delta===0?"Je eindtijd is precies je doel.":`Je eindtijd is ${fmt(Math.abs(delta)*1000)} ${delta>0?"boven":"onder"} je doel.`}</p>
+      ${overTarget.length?`<p><strong>Meeste ruimte om te verbeteren:</strong> ${overTarget.map(row=>`${esc(row.name)} ${signed(row.actual-row.target)}`).join("; ")}.</p>`:`<p>Alle onderdelen bleven binnen 30 seconden van je richttijd.</p>`}
       <div class="chart-legend"><span><i></i> Doel</span><span><i class="actual-key"></i> Werkelijk</span></div>
       <div class="wrap" role="region" aria-label="Grafiek doel versus werkelijk per onderdeel" tabindex="0"><ol class="split-chart">${chart}</ol></div>
       <div class="wrap"><table><caption>Doel- en gemeten tijden per onderdeel</caption><thead><tr><th>Onderdeel</th><th class="n">Doel</th><th class="n">Werkelijk</th><th class="n">Verschil</th></tr></thead><tbody>${table}</tbody>
         <tfoot><tr><th scope="row">Totaal incl. Roxzone</th><td class="n">${fmt(plan.goalSeconds*1000)}</td><td class="n">${fmt(actualTotal*1000)}</td><td class="n">${signed(delta)}</td></tr></tfoot>
       </table></div>
-      <p class="source-note">Stationverhoudingen zijn gebaseerd op de gemiddelde stationstijden van de top 100 PRO-resultaten per geslacht in seizoen 2024/25 uit <a href="${BENCHMARK_SOURCE}" target="_blank" rel="noopener">Rappelt et al., Frontiers in Physiology (2026)</a>. Er zijn geen openbare Open-splits in die studie; voor Open gebruikt dit plan daarom dezelfde Pro/Elite-verhouding als proxy, niet een Open-specifieke norm. De divisiekeuze verandert de benchmarkverhouding niet. Roxzone volgt de instelling van deze simulator. Een aparte categoriebenchmarkstudie is <a href="https://pubmed.ncbi.nlm.nih.gov/42189569/" target="_blank" rel="noopener">niet open toegankelijk</a>. Dit is een indicatieve verdeling, geen voorspelling.</p>
+      <details class="source-details"><summary>Hoe is dit doelplan berekend?</summary>
+        <p>Je tempo bepaalt de 8 km looptijd. De resterende tijd wordt over de stations verdeeld; de simulatorinstelling bepaalt de Roxzone. De verdeling is een richtlijn, geen voorspelling. Open gebruikt dezelfde stationverhouding als Pro, omdat openbare Open-splits ontbreken. <a href="${BENCHMARK_SOURCE}" target="_blank" rel="noopener">Lees over de gebruikte stationstijden</a>.</p>
+      </details>
     </section>`;
   }
   const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -633,9 +594,6 @@ summary{cursor:pointer;font-weight:700}
   });
 
   renderGrid();
-  if(DEMO){
-    document.querySelector('.tabs button[data-view="uitslag"]').click();
-  }
   setInterval(tick,250);
 })();
 </script>
