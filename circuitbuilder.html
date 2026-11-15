@@ -52,6 +52,8 @@ main{max-width:1100px;margin:0 auto;padding:18px}
 .item{display:grid;grid-template-columns:minmax(100px,1fr) minmax(80px,.45fr) minmax(90px,.5fr) auto auto auto;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--line);padding:10px}
 .item.current{border-color:var(--orange);box-shadow:inset 4px 0 var(--orange)}
 .item.done{border-color:#555}
+.item.just-added{animation:added-highlight 1.2s ease-out}
+@keyframes added-highlight{from{border-color:var(--orange);background:#24180f}to{background:var(--bg)}}
 .move,.remove{border:1px solid var(--line);background:none;color:var(--muted);padding:8px 10px;min-height:42px}
 .remove{color:var(--orange)}
 .move:disabled,.remove:disabled,.item input:disabled,.item select:disabled{opacity:.45;cursor:not-allowed}
@@ -205,9 +207,11 @@ main{max-width:1100px;margin:0 auto;padding:18px}
     try{
       localStorage.setItem(KEY,JSON.stringify(state));
       status.textContent="";
+      return true;
     }catch(error){
       console.error("Could not save circuit builder data.",error);
       status.textContent="Opslaan mislukt. Controleer de opslagruimte en browserinstellingen.";
+      return false;
     }
   }
   function isLocked(){return state.startedAt!==null}
@@ -295,7 +299,19 @@ main{max-width:1100px;margin:0 auto;padding:18px}
     }
     state.items.push(makeItem(name,quantity,byId("unit").value));
     byId("quantity").value="";
-    save();render();return true;
+    const saved=save();
+    render();
+    const addedItem=byId("exerciseList").lastElementChild;
+    if(addedItem){
+      addedItem.classList.add("just-added");
+      addedItem.scrollIntoView({
+        behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",
+        block:"center"
+      });
+      setTimeout(()=>addedItem.classList.remove("just-added"),1200);
+    }
+    if(saved)status.textContent=`${name} toegevoegd aan het circuit.`;
+    return true;
   }
   const exerciseSelect=byId("exerciseSelect");
   exerciseSelect.innerHTML=EXERCISES.map((name,index)=>`<option value="${index}">${escapeHtml(name)}</option>`).join("");

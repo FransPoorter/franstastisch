@@ -62,6 +62,15 @@ main{padding:18px;max-width:1500px;margin:0 auto}
 .cfg input{padding:8px;border:1px solid var(--line);background:var(--surface);font-size:20px;font-weight:700;border-radius:0;width:100%}
 .cfgreset{grid-column:1/-1;border:0;background:none;color:var(--muted);text-decoration:underline;font-size:14px;text-align:left;padding:2px 0}
 .cfgreset:disabled{visibility:hidden}
+.planbtn{border:1px solid var(--line);background:none;padding:8px 10px;font-size:14px;font-weight:700;color:var(--muted);text-align:left}
+.planbtn.own{border-color:var(--orange);color:var(--orange)}
+.plan-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;background:var(--bg);border:1px solid var(--line)}
+.plan-fields label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted)}
+.plan-fields input,.plan-fields select{width:100%;padding:8px;border:1px solid var(--line);background:var(--surface);font-size:18px;font-weight:700;border-radius:0}
+.plan-fields .plan-message,.plan-fields .benchmark-note{grid-column:1/-1;margin:0;color:var(--muted);font-size:13px}
+.plan-fields .plan-message.error{color:var(--orange)}
+.benchmark-note a,.source-note a{color:var(--orange)}
+.plan-preview{font-size:14px;color:var(--muted)}
 .strip{display:grid;grid-template-columns:repeat(16,1fr);gap:3px;align-items:end}
 .strip span{height:10px;background:var(--idle)}
 .strip span.s{height:18px}
@@ -116,6 +125,24 @@ summary{cursor:pointer;font-weight:700}
 .toast{color:var(--orange);font-weight:700;margin-left:10px}
 .status{color:var(--orange);font-size:14px;font-weight:600}
 .status:empty{display:none}
+.plan-analysis{border-top:1px solid var(--line);padding-top:18px;margin-top:8px}
+.plan-analysis h3{font-family:var(--display);font-size:20px;text-transform:uppercase;margin:0}
+.plan-analysis p{margin:0;color:var(--muted)}
+.chart-legend{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+.chart-legend span{display:inline-flex;align-items:center;gap:6px}
+.chart-legend i{display:inline-block;width:16px;height:8px;background:var(--run)}
+.chart-legend .actual-key{background:var(--orange)}
+.split-chart{list-style:none;margin:0;padding:0;min-width:650px}
+.split-chart li{display:grid;grid-template-columns:140px 1fr;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}
+.chart-name{font-weight:700;align-self:center}
+.chart-bars{display:grid;gap:4px}
+.barline{display:grid;grid-template-columns:42px minmax(40px,1fr) 58px;gap:8px;align-items:center;font-size:12px}
+.bar-label{color:var(--muted)}
+.bar{display:block;height:8px;background:var(--run);min-width:2px}
+.bar.actual{background:var(--orange)}
+.bar-value{text-align:right;font-variant-numeric:tabular-nums}
+.source-note{font-size:13px;color:var(--muted);max-width:90ch}
+[aria-invalid="true"]{border-color:var(--orange)!important}
 [hidden]{display:none!important}
 @media (max-width:640px){.tabs{margin-left:0;width:100%}.tabs button{flex:1;padding:9px 6px}.top h1{display:none}}
 @media (prefers-reduced-motion:reduce){.go:active{transform:none}}
@@ -166,10 +193,21 @@ summary{cursor:pointer;font-weight:700}
     ["Run 5","r",320],["Roeien","s",300],["Run 6","r",325],["Farmers carry","s",120],
     ["Run 7","r",330],["Sandbag lunges","s",300],["Run 8","r",335],["Wall balls","s",360]
   ];
+  const DIVISIONS=[
+    {value:"openMen",label:"Open mannen",gender:"men"},
+    {value:"proMen",label:"Pro mannen",gender:"men"},
+    {value:"openWomen",label:"Open vrouwen",gender:"women"},
+    {value:"proWomen",label:"Pro vrouwen",gender:"women"}
+  ];
+  const BENCHMARKS={
+    men:[228,146,207,164,270,104,206,239],
+    women:[263,167,238,207,236,85,187,235]
+  };
+  const BENCHMARK_SOURCE="https://pmc.ncbi.nlm.nih.gov/articles/PMC13409289/";
   const N=SEGS.length, KEY="hyrox-sim-v1";
   const DEFAULT_SETTINGS={runPct:70,stationPct:100,runCorr:3,rox:20};
   const SETTING_LIMITS={runPct:[10,100],stationPct:[10,100],runCorr:[0,20],rox:[0,90]};
-  const mkTeam=i=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:"Team "+i,start:null,laps:[]});
+  const mkTeam=i=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:"Team "+i,start:null,laps:[],plan:{goalSeconds:null,paceSeconds:null,division:"openMen"}});
   const status=document.getElementById("appStatus");
   const reportStorageError=message=>{status.textContent=message};
   function boundedSetting(value,key){
@@ -196,7 +234,13 @@ summary{cursor:pointer;font-weight:700}
         if(Number.isFinite(team.cfg[key])) cfg[key]=boundedSetting(team.cfg[key],key);
       }
     }
-    return {id,name,start,laps,...(Object.keys(cfg).length?{cfg}:{})};
+    const storedPlan=team.plan&&typeof team.plan==="object"?team.plan:{};
+    const plan={
+      goalSeconds:Number.isInteger(storedPlan.goalSeconds)&&storedPlan.goalSeconds>0&&storedPlan.goalSeconds<=43200?storedPlan.goalSeconds:null,
+      paceSeconds:Number.isInteger(storedPlan.paceSeconds)&&storedPlan.paceSeconds>0&&storedPlan.paceSeconds<=3600?storedPlan.paceSeconds:null,
+      division:DIVISIONS.some(item=>item.value===storedPlan.division)?storedPlan.division:"openMen"
+    };
+    return {id,name,start,laps,plan,...(Object.keys(cfg).length?{cfg}:{})};
   }
   let S;
   try{
@@ -208,7 +252,7 @@ summary{cursor:pointer;font-weight:700}
       }
       let teams=stored.teams.map(normalizeTeam).filter(Boolean);
       const defaultTeams=teams.length===4&&teams.every((team,index)=>
-        team.name==="Team "+(index+1)&&!team.start&&!team.laps.length&&!team.cfg
+        team.name==="Team "+(index+1)&&!team.start&&!team.laps.length&&!team.cfg&&!team.plan.goalSeconds&&!team.plan.paceSeconds
       );
       if(defaultTeams) teams=teams.slice(0,1);
       if(!teams.length) teams=[mkTeam(1)];
@@ -248,6 +292,48 @@ summary{cursor:pointer;font-weight:700}
   }
   const segDur=(t,i)=>t.laps[i]-(i===0?t.start:t.laps[i-1]);
 
+  function parseTimeInput(value,allowHours){
+    const parts=String(value).trim().split(":");
+    if(parts.some(part=>!/^\d+$/.test(part)))return null;
+    let seconds;
+    if(allowHours&&parts.length===3){
+      const [hours,minutes,secs]=parts.map(Number);
+      if(minutes>=60||secs>=60)return null;
+      seconds=hours*3600+minutes*60+secs;
+    }else if(parts.length===2){
+      const [minutes,secs]=parts.map(Number);
+      if(secs>=60)return null;
+      seconds=minutes*60+secs;
+    }else return null;
+    return seconds>0&&seconds<=(allowHours?43200:3600)?seconds:null;
+  }
+  function timeInput(seconds,withHours){
+    if(!seconds)return "";
+    const hours=Math.floor(seconds/3600),minutes=Math.floor(seconds%3600/60),secs=seconds%60;
+    return withHours&&hours?`${hours}:${pad(minutes)}:${pad(secs)}`:`${Math.floor(seconds/60)}:${pad(secs)}`;
+  }
+  const division=t=>DIVISIONS.find(item=>item.value===t.plan.division)||DIVISIONS[0];
+  function targetPlan(t){
+    const {goalSeconds,paceSeconds}=t.plan;
+    if(!goalSeconds||!paceSeconds)return {ok:false,message:"Vul een streeftijd en looptempo in om de verdeling te berekenen."};
+    const runSeconds=paceSeconds*8;
+    const roxSeconds=16*S.settings.rox;
+    const stationBudget=goalSeconds-runSeconds-roxSeconds;
+    if(stationBudget<=0)return {ok:false,message:`Niet haalbaar: 8 km lopen (${fmt(runSeconds*1000)}) plus Roxzone (${fmt(roxSeconds*1000)}) is al langer dan de streeftijd.`};
+    const profile=division(t).gender==="women"?BENCHMARKS.women:BENCHMARKS.men;
+    const weightTotal=profile.reduce((sum,value)=>sum+value,0);
+    const exact=profile.map(value=>stationBudget*value/weightTotal);
+    const stations=exact.map(Math.floor);
+    let remainder=stationBudget-stations.reduce((sum,value)=>sum+value,0);
+    exact.map((value,index)=>({index,remainder:value-stations[index]}))
+      .sort((a,b)=>b.remainder-a.remainder)
+      .slice(0,remainder)
+      .forEach(item=>stations[item.index]++);
+    let stationIndex=0;
+    const targets=SEGS.map((segment,index)=>isRun(index)?paceSeconds:stations[stationIndex++]);
+    return {ok:true,goalSeconds,paceSeconds,runSeconds,roxSeconds,stationBudget,targets,stations,division:division(t)};
+  }
+
   function predict(t,now){
     const n=t.laps.length; if(!t.start||n===0) return null;
     let pr=0,rr=0,ps=0,rs=0;
@@ -266,6 +352,22 @@ summary{cursor:pointer;font-weight:700}
 
   // ---------- timer view ----------
   const grid=document.getElementById("grid");
+  const openPlan=new Set();
+  function planHTML(t){
+    const open=openPlan.has(t.id),plan=targetPlan(t);
+    const preview=plan.ok
+      ?`Doel ${fmt(plan.goalSeconds*1000)} · lopen ${fmt(plan.runSeconds*1000)} · stations ${fmt(plan.stationBudget*1000)} · Roxzone ${fmt(plan.roxSeconds*1000)}`
+      :plan.message;
+    return `<button class="planbtn${t.plan.goalSeconds&&t.plan.paceSeconds?" own":""}" aria-expanded="${open}">Doelplan instellen</button>
+      <div class="plan-fields" ${open?"":"hidden"}>
+        <label for="goal-${esc(t.id)}">Streeftijd (HH:MM:SS of MM:SS)<input id="goal-${esc(t.id)}" type="text" data-plan="goalSeconds" inputmode="numeric" maxlength="8" placeholder="1:15:00" value="${timeInput(t.plan.goalSeconds,true)}"></label>
+        <label for="pace-${esc(t.id)}">Looptempo (MM:SS per km)<input id="pace-${esc(t.id)}" type="text" data-plan="paceSeconds" inputmode="numeric" maxlength="5" placeholder="5:30" value="${timeInput(t.plan.paceSeconds,false)}"></label>
+        <label for="division-${esc(t.id)}">Divisie<select id="division-${esc(t.id)}" data-plan-division>${DIVISIONS.map(item=>`<option value="${item.value}" ${item.value===t.plan.division?"selected":""}>${item.label}</option>`).join("")}</select></label>
+        <p class="plan-message${plan.ok?"":" error"}" role="status">${esc(preview)}</p>
+        <p class="benchmark-note">De stations worden verdeeld met Pro/Elite-verhoudingen per geslacht. Open-specifieke openbare splitdata zijn niet gevonden; voor Open is dit dus nadrukkelijk een Pro/Elite-proxy. Roxzone gebruikt de instelling van deze simulator.</p>
+      </div>
+      <div class="plan-preview">${esc(preview)}</div>`;
+  }
   function cfgHTML(t){
     const c=cfg(t),open=openCfg.has(t.id),own=custom(t);
     return `<button class="cfgbtn${own?" own":""}" aria-expanded="${open}">Lopen ${c.runPct}% / stations ${c.stationPct}%${own?" (eigen instelling)":""}</button>
@@ -283,6 +385,7 @@ summary{cursor:pointer;font-weight:700}
     else if(started){const s=SEGS[n];seg=`<span class="tag ${s[1]}">${s[1]==="r"?"Lopen":"Station"}</span>${s[0]}`;btn=`Klaar met ${s[0]}`;bcls=s[1]}
     return `<header class="thead"><input aria-label="Teamnaam" maxlength="60" value="${esc(t.name)}"><button class="del">Verwijderen</button></header>
       ${cfgHTML(t)}
+      ${planHTML(t)}
       <div class="strip" aria-hidden="true">${cells}</div>
       <div class="now"><span class="seg">${seg}</span><span class="segt num" data-segt></span></div>
       <div class="nums"><div><b class="num" data-total>0:00</b><small>Gemeten tijd</small></div>
@@ -308,6 +411,31 @@ summary{cursor:pointer;font-weight:700}
       save();renderCard(el,t);tick();
     });
     el.querySelector(".cfgreset").onclick=()=>{delete t.cfg;save();renderCard(el,t);tick()};
+    el.querySelector(".planbtn").onclick=()=>{openPlan.has(t.id)?openPlan.delete(t.id):openPlan.add(t.id);renderCard(el,t);tick()};
+    el.querySelectorAll(".plan-fields input").forEach(inp=>inp.onchange=()=>{
+      const key=inp.dataset.plan,value=inp.value.trim();
+      const seconds=value?parseTimeInput(value,key==="goalSeconds"):null;
+      const message=el.querySelector(".plan-message");
+      if(value&&!seconds){
+        inp.setAttribute("aria-invalid","true");
+        message.classList.add("error");
+        message.textContent=key==="goalSeconds"?"Gebruik MM:SS of HH:MM:SS; minuten en seconden zijn maximaal 59.":"Gebruik MM:SS per kilometer, bijvoorbeeld 5:30.";
+        return;
+      }
+      inp.removeAttribute("aria-invalid");
+      message.textContent="";
+      t.plan[key]=seconds;
+      save();renderCard(el,t);tick();
+    });
+    el.querySelectorAll(".plan-fields input").forEach(inp=>inp.oninput=()=>{
+      inp.removeAttribute("aria-invalid");
+      const message=el.querySelector(".plan-message");
+      message.classList.remove("error");
+      message.textContent="";
+    });
+    el.querySelector("[data-plan-division]").onchange=e=>{
+      t.plan.division=e.target.value;save();renderCard(el,t);tick();
+    };
     el.querySelector(".go").onclick=()=>{
       const now=Date.now();
       if(!t.start){t.start=now;wake()}else if(t.laps.length<N){t.laps.push(now);if(navigator.vibrate)navigator.vibrate(60)}
