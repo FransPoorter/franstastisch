@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Elev8 HYROX-simulatie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Barlow+Condensed:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#000000; --head:#080A0D; --surface:#111317; --ink:#FFFFFF; --muted:#A3A6AB; --line:#2A2D33;
+  --orange:#DC8434; --run:#F2F2F2; --station:#DC8434; --on-run:#000000; --on-station:#FFFFFF; --idle:#25282E;
+  --display:"Archivo","Arial Black","Helvetica Neue",Arial,sans-serif;
+  --cond:"Barlow Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --body:"Archivo","Helvetica Neue",Arial,sans-serif;
+  color-scheme:dark;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.45;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--head)}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border-radius:0}
+:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:linear-gradient(180deg,#14171C,var(--head));border-bottom:1px solid var(--line);padding:12px 18px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.logo svg{width:40px;height:40px;flex:none}
+.logo .bar{width:2px;align-self:stretch;background:var(--ink)}
+.logo .wm{display:flex;flex-direction:column;line-height:1}
+.logo .wm b{font-family:var(--display);font-weight:800;font-size:30px;letter-spacing:.02em}
+.logo .wm span{font-family:var(--cond);font-weight:400;font-size:14px;letter-spacing:.08em;margin-top:2px}
+.top h1{font-family:var(--display);font-weight:800;font-size:18px;text-transform:uppercase;letter-spacing:.04em;margin:0;color:var(--orange)}
+.clock{font-family:var(--display);font-size:22px;font-weight:700;color:var(--muted)}
+.tabs{display:flex;gap:0;border:1px solid var(--line);margin-left:auto}
+.tabs button{border:0;background:none;padding:9px 16px;font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:14px}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.startall{border:1px solid var(--ink);background:var(--orange);color:#fff;font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.1em;font-size:15px;padding:11px 20px}
+
+.resetall{border:1px solid var(--ink);background:none;color:var(--ink);font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.1em;font-size:15px;padding:11px 18px}
+.resetall.arm{background:var(--ink);color:var(--bg)}
+main{padding:18px;max-width:1500px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+
+.team{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:12px}
+.team.live{border-top-color:var(--orange)}
+.team.fin{border-top-color:var(--ink)}
+.thead{display:flex;gap:8px;align-items:center}
+.thead input{flex:1;min-width:0;border:0;background:none;font-family:var(--display);font-size:26px;font-weight:800;text-transform:uppercase;padding:2px 4px}
+.thead input:hover{background:var(--bg)}
+.del{border:1px solid var(--line);background:none;padding:6px 10px;font-size:13px;color:var(--muted);white-space:nowrap}
+.del.arm{background:var(--orange);color:#fff;border-color:var(--orange)}
+
+.cfgbtn{border:1px solid var(--line);background:none;padding:7px 10px;font-size:14px;font-weight:600;color:var(--muted);text-align:left}
+.cfgbtn.own{border-color:var(--orange);color:var(--orange)}
+.cfg{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;background:var(--bg);border:1px solid var(--line)}
+.cfg label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted)}
+.cfg input{padding:8px;border:1px solid var(--line);background:var(--surface);font-size:20px;font-weight:700;border-radius:0;width:100%}
+.cfgreset{grid-column:1/-1;border:0;background:none;color:var(--muted);text-decoration:underline;font-size:14px;text-align:left;padding:2px 0}
+.cfgreset:disabled{visibility:hidden}
+.strip{display:grid;grid-template-columns:repeat(16,1fr);gap:3px;align-items:end}
+.strip span{height:10px;background:var(--idle)}
+.strip span.s{height:18px}
+.strip span.r.done{background:var(--run)}
+.strip span.s.done{background:var(--station)}
+.strip span.cur{outline:2px solid var(--orange);outline-offset:1px}
+
+.now{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.seg{font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:.02em}
+.seg .tag{display:inline-block;font-size:12px;font-weight:800;padding:2px 8px;margin-right:8px;vertical-align:2px;letter-spacing:.08em}
+.tag.r{background:var(--run);color:var(--on-run)} .tag.s{background:var(--station);color:var(--on-station)}
+.segt{font-family:var(--display);font-size:24px;font-weight:700}
+
+.nums{display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid var(--line);padding-top:12px}
+.nums b{display:block;font-family:var(--display);font-weight:800;font-size:36px;line-height:1}
+.nums .pred b{font-size:46px;color:var(--orange)}
+.nums small{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+
+.go{border:1px solid var(--ink);padding:20px 12px;font-family:var(--display);font-weight:800;font-size:19px;text-transform:uppercase;letter-spacing:.06em;min-height:72px}
+.go.r{background:var(--run);color:var(--on-run)}
+.go.s{background:var(--station);color:var(--on-station)}
+.go.idle{background:var(--orange);color:#fff}
+.go:disabled{background:var(--idle);color:var(--muted);border-color:var(--line);cursor:default}
+.go:active:not(:disabled){transform:scale(.985)}
+.undo{border:0;background:none;color:var(--muted);text-decoration:underline;padding:4px;align-self:flex-start;font-size:14px}
+.undo:disabled{visibility:hidden}
+
+.add{border:2px dashed var(--line);background:none;min-height:200px;font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:18px;color:var(--muted)}
+.add:hover{border-color:var(--orange);color:var(--orange)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--orange);padding:22px;max-width:760px}
+.panel h2{font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:26px;margin:0 0 6px}
+.panel p{margin:0 0 16px;color:var(--muted);max-width:65ch}
+.field{display:grid;grid-template-columns:1fr 120px;gap:4px 16px;align-items:center;padding:14px 0;border-top:1px solid var(--line)}
+.field label{font-weight:700}
+.field span{grid-column:1/2;color:var(--muted);font-size:15px}
+.field input{grid-row:1/3;grid-column:2;width:100%;padding:10px;border:1px solid var(--line);background:var(--bg);font-size:20px;font-weight:700;text-align:right;border-radius:0}
+.danger{margin-top:12px;border:1px solid var(--orange);background:none;color:var(--orange);font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:10px 16px}
+.danger.arm{background:var(--orange);color:#fff}
+
+.res{display:flex;flex-direction:column;gap:12px}
+.res h2{font-family:var(--display)!important;font-weight:800;text-transform:uppercase}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:520px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+th{font-size:13px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.big{font-family:var(--display);font-size:22px;font-weight:800;color:var(--orange)}
+details{border-top:1px solid var(--line);padding:10px 0}
+summary{cursor:pointer;font-weight:700}
+.copy{border:1px solid var(--ink);background:var(--orange);color:#fff;font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:11px 18px;align-self:flex-start}
+.toast{color:var(--orange);font-weight:700;margin-left:10px}
+[hidden]{display:none!important}
+@media (max-width:640px){.tabs{margin-left:0;width:100%}.tabs button{flex:1;padding:9px 6px}.top h1{display:none}}
+@media (prefers-reduced-motion:reduce){.go:active{transform:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="/" aria-label="Terug naar franstastisch.nl">
+    <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#EC6D2C" stroke-width="2.4" stroke-linejoin="miter"><path d="M3 39V30h6v9M14 39V24h6v15M25 39V20h6v19"/><path d="M4 22l7-8 5 4 9-9 5 3 7-7"/><path d="M33 4h5v5" /></svg>
+    <span class="bar"></span>
+    <span class="wm"><b>ELEV8</b><span>HYBRID FITNESS</span></span>
+  </a>
+  <h1>HYROX-simulatie</h1>
+  <span class="clock num" id="clock">--:--</span>
+  <button class="startall" id="startall">Start alle teams</button>
+  <button class="resetall" id="resetall">Reset</button>
+  <nav class="tabs" aria-label="Weergave">
+    <button data-view="timer" aria-pressed="true">Timer</button>
+    <button data-view="uitslag" aria-pressed="false">Uitslag</button>
+    <button data-view="instellingen" aria-pressed="false">Instellingen</button>
+  </nav>
+</header>
+
+<main>
+  <section id="v-timer"><div class="grid" id="grid"></div></section>
+
+  <section id="v-uitslag" hidden><div class="panel res" id="res"></div></section>
+
+  <section id="v-instellingen" hidden>
+    <div class="panel">
+      <h2>Simulatie en omrekening</h2>
+      <p>Gemeten tijden worden omgerekend naar een volledige HYROX: lopen en stations apart, plus een vaste toeslag voor de Roxzone. Tot het eerste onderdeel klaar is, toont een team nog geen verwachte tijd. Dit zijn de standaardwaarden voor alle teams; loopafstand en stationvolume pas je per team aan op de teamkaart.</p>
+      <div class="field"><label for="runPct">Loopafstand in de simulatie (%)</label><span>70 betekent 700 m per run in plaats van 1 km.</span><input id="runPct" type="number" min="10" max="100" step="5" inputmode="numeric"></div>
+      <div class="field"><label for="stationPct">Stationvolume in de simulatie (%)</label><span>100 betekent volledige afstanden en herhalingen.</span><input id="stationPct" type="number" min="10" max="100" step="5" inputmode="numeric"></div>
+      <div class="field"><label for="runCorr">Vertraging over de volle loopafstand (%)</label><span>Op een langere run loop je iets trager. Telt alleen mee als de loopafstand onder 100% ligt.</span><input id="runCorr" type="number" min="0" max="20" step="1" inputmode="numeric"></div>
+      <div class="field"><label for="rox">Roxzone per wissel (seconden)</label><span>Een race kent 16 wissels door de Roxzone, die in de sportschool grotendeels wegvallen.</span><input id="rox" type="number" min="0" max="90" step="5" inputmode="numeric"></div>
+      <button class="danger" id="reset">Alle tijden wissen</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){
+  const SEGS=[
+    ["Run 1","r",290],["SkiErg","s",285],["Run 2","r",305],["Sled push","s",240],
+    ["Run 3","r",315],["Sled pull","s",300],["Run 4","r",320],["Burpee broad jumps","s",330],
+    ["Run 5","r",320],["Roeien","s",300],["Run 6","r",325],["Farmers carry","s",120],
+    ["Run 7","r",330],["Sandbag lunges","s",300],["Run 8","r",335],["Wall balls","s",360]
+  ];
+  const N=SEGS.length, KEY="hyrox-sim-v1";
+  const mkTeam=i=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:"Team "+i,start:null,laps:[]});
+  let S;
+  try{S=JSON.parse(localStorage.getItem(KEY)||"null")}catch(e){S=null}
+  if(!S||!Array.isArray(S.teams)) S={settings:{runPct:70,stationPct:100,runCorr:3,rox:20},teams:[1,2,3,4].map(mkTeam)};
+  const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+
+  const pad=n=>String(n).padStart(2,"0");
+  function fmt(ms){
+    if(ms==null||!isFinite(ms)) return "—";
+    const t=Math.max(0,Math.round(ms/1000)),h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;
+    return h?`${h}:${pad(m)}:${pad(s)}`:`${m}:${pad(s)}`;
+  }
+  const isRun=i=>SEGS[i][1]==="r";
+  const cfg=t=>Object.assign({},S.settings,(t&&t.cfg)||{});
+  const custom=t=>!!(t.cfg&&Object.keys(t.cfg).length);
+  const openCfg=new Set();
+  function factor(i,t){
+    const st=cfg(t);
+    if(isRun(i)){const p=st.runPct/100;return (1/p)*(p<1?1+st.runCorr/100:1)}
+    return 100/st.stationPct;
+  }
+  const segDur=(t,i)=>t.laps[i]-(i===0?t.start:t.laps[i-1]);
+
+  function predict(t,now){
+    const n=t.laps.length; if(!t.start||n===0) return null;
+    let pr=0,rr=0,ps=0,rs=0;
+    for(let i=0;i<n;i++){const v=segDur(t,i)*factor(i,t),ref=SEGS[i][2]*1000;
+      if(isRun(i)){pr+=v;rr+=ref}else{ps+=v;rs+=ref}}
+    const all=(pr+ps)/(rr+rs);
+    const perfR=rr?pr/rr:all, perfS=rs?ps/rs:all;
+    const perf=i=>isRun(i)?perfR:perfS;
+    let total=pr+ps+16*S.settings.rox*1000;
+    if(n===N) return total;
+    const cur=(now-t.laps[n-1])*factor(n,t);
+    total+=Math.max(cur,perf(n)*SEGS[n][2]*1000);
+    for(let i=n+1;i<N;i++) total+=perf(i)*SEGS[i][2]*1000;
+    return total;
+  }
+
+  // ---------- timer view ----------
+  const grid=document.getElementById("grid");
+  function cfgHTML(t){
+    const c=cfg(t),open=openCfg.has(t.id),own=custom(t);
+    return `<button class="cfgbtn${own?" own":""}" aria-expanded="${open}">Lopen ${c.runPct}% / stations ${c.stationPct}%${own?" (eigen instelling)":""}</button>
+      <div class="cfg" ${open?"":"hidden"}>
+        <label>Loopafstand (%)<input type="number" data-k="runPct" min="10" max="100" step="5" inputmode="numeric" value="${c.runPct}"></label>
+        <label>Stationvolume (%)<input type="number" data-k="stationPct" min="10" max="100" step="5" inputmode="numeric" value="${c.stationPct}"></label>
+        <button class="cfgreset" ${own?"":"disabled"}>Standaard gebruiken</button>
+      </div>`;
+  }
+  function cardHTML(t){
+    const n=t.laps.length, fin=n===N, started=!!t.start;
+    const cells=SEGS.map((s,i)=>`<span class="${s[1]}${i<n?" done":""}${started&&!fin&&i===n?" cur":""}" title="${s[0]}"></span>`).join("");
+    let seg="Klaar om te starten", btn="Start", bcls="idle";
+    if(fin){seg="Gefinisht";btn="Gefinisht";bcls=""}
+    else if(started){const s=SEGS[n];seg=`<span class="tag ${s[1]}">${s[1]==="r"?"Lopen":"Station"}</span>${s[0]}`;btn=`Klaar met ${s[0]}`;bcls=s[1]}
+    return `<header class="thead"><input aria-label="Teamnaam" value="${t.name.replace(/"/g,"&quot;")}"><button class="del">Verwijderen</button></header>
+      ${cfgHTML(t)}
+      <div class="strip" aria-hidden="true">${cells}</div>
+      <div class="now"><span class="seg">${seg}</span><span class="segt num" data-segt></span></div>
+      <div class="nums"><div><b class="num" data-total>0:00</b><small>Gemeten tijd</small></div>
+      <div class="pred"><b class="num" data-pred>—</b><small>Verwachte racetijd</small></div></div>
+      <button class="go ${bcls}" ${fin?"disabled":""}>${btn}</button>
+      <button class="undo" ${n||started?"":"disabled"}>${n?"Laatste onderdeel ongedaan maken":"Start ongedaan maken"}</button>`;
+  }
+  function renderCard(el,t){el.className="team"+(t.laps.length===N?" fin":(t.start?" live":""));el.innerHTML=cardHTML(t);wire(el,t)}
+  function renderGrid(){
+    grid.innerHTML="";
+    S.teams.forEach(t=>{const el=document.createElement("article");el.dataset.id=t.id;grid.appendChild(el);renderCard(el,t)});
+    const add=document.createElement("button");add.className="add";add.textContent="Team toevoegen";
+    add.onclick=()=>{S.teams.push(mkTeam(S.teams.length+1));save();renderGrid()};
+    grid.appendChild(add);tick();
+  }
+  function wire(el,t){
+    el.querySelector(".thead input").oninput=e=>{t.name=e.target.value;save()};
+    el.querySelector(".cfgbtn").onclick=()=>{openCfg.has(t.id)?openCfg.delete(t.id):openCfg.add(t.id);renderCard(el,t);tick()};
+    el.querySelectorAll(".cfg input").forEach(inp=>inp.onchange=()=>{
+      const k=inp.dataset.k;let v=parseFloat(inp.value);
+      if(!isFinite(v))v=cfg(t)[k];v=Math.min(+inp.max,Math.max(+inp.min,v));
+      t.cfg=t.cfg||{};if(v===S.settings[k])delete t.cfg[k];else t.cfg[k]=v;
+      save();renderCard(el,t);tick();
+    });
+    el.querySelector(".cfgreset").onclick=()=>{delete t.cfg;save();renderCard(el,t);tick()};
+    el.querySelector(".go").onclick=()=>{
+      const now=Date.now();
+      if(!t.start){t.start=now;wake()}else if(t.laps.length<N){t.laps.push(now);if(navigator.vibrate)navigator.vibrate(60)}
+      save();renderCard(el,t);tick();
+    };
+    el.querySelector(".undo").onclick=()=>{if(t.laps.length)t.laps.pop();else t.start=null;save();renderCard(el,t);tick()};
+    const del=el.querySelector(".del");let timer;
+    del.onclick=()=>{
+      if(del.classList.contains("arm")){S.teams=S.teams.filter(x=>x.id!==t.id);save();renderGrid();return}
+      del.classList.add("arm");del.textContent="Zeker weten?";
+      clearTimeout(timer);timer=setTimeout(()=>{del.classList.remove("arm");del.textContent="Verwijderen"},3000);
+    };
+  }
+  function tick(){
+    const now=Date.now();
+    const d=new Date();document.getElementById("clock").textContent=`${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    grid.querySelectorAll(".team").forEach(el=>{
+      const t=S.teams.find(x=>x.id===el.dataset.id);if(!t)return;
+      const n=t.laps.length,fin=n===N;
+      const end=fin?t.laps[N-1]:now;
+      el.querySelector("[data-total]").textContent=t.start?fmt(end-t.start):"0:00";
+      el.querySelector("[data-segt]").textContent=t.start&&!fin?fmt(now-(n?t.laps[n-1]:t.start)):"";
+      el.querySelector("[data-pred]").textContent=fmt(predict(t,now));
+    });
+  }
+  document.getElementById("startall").onclick=()=>{
+    const now=Date.now();let any=false;
+    S.teams.forEach(t=>{if(!t.start){t.start=now;any=true}});
+    if(any){save();renderGrid();wake()}
+  };
+
+  const resetAll=document.getElementById("resetall");let rat;
+  resetAll.onclick=()=>{
+    if(resetAll.classList.contains("arm")){
+      clearTimeout(rat);S.teams.forEach(t=>{t.start=null;t.laps=[]});save();renderGrid();
+      if(!document.getElementById("v-uitslag").hidden)renderRes();
+      resetAll.classList.remove("arm");resetAll.textContent="Reset";return}
+    resetAll.classList.add("arm");resetAll.textContent="Tik nogmaals";
+    clearTimeout(rat);rat=setTimeout(()=>{resetAll.classList.remove("arm");resetAll.textContent="Reset"},3000);
+  };
+
+  // ---------- wake lock ----------
+  let lock=null;
+  async function wake(){try{if("wakeLock" in navigator&&!lock){lock=await navigator.wakeLock.request("screen");lock.addEventListener("release",()=>lock=null)}}catch(e){}}
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&S.teams.some(t=>t.start&&t.laps.length<N))wake()});
+
+  // ---------- results ----------
+  const res=document.getElementById("res");
+  function renderRes(){
+    const now=Date.now();
+    const rows=S.teams.map(t=>({t,p:predict(t,now),n:t.laps.length})).sort((a,b)=>{
+      if(a.p==null)return 1;if(b.p==null)return -1;return a.p-b.p});
+    let h=`<h2 style="font-size:26px;margin:0">Uitslag</h2>
+      <p style="margin:0;color:var(--muted)">Gesorteerd op verwachte racetijd. Standaard: lopen ${S.settings.runPct}%, stations ${S.settings.stationPct}%.</p>
+      <div class="wrap"><table><thead><tr><th>Team</th><th>Lopen / stations</th><th class="n">Onderdelen</th><th class="n">Gemeten</th><th class="n">Verwachte racetijd</th></tr></thead><tbody>`;
+    rows.forEach(r=>{const end=r.n===N?r.t.laps[N-1]:now;
+      h+=`<tr><td>${esc(r.t.name)}</td><td>${cfg(r.t).runPct}% / ${cfg(r.t).stationPct}%</td><td class="n">${r.n}/${N}</td><td class="n">${r.t.start?fmt(end-r.t.start):"—"}</td><td class="n big">${fmt(r.p)}</td></tr>`});
+    h+=`</tbody></table></div>`;
+    rows.forEach(r=>{if(!r.n)return;
+      h+=`<details><summary>${esc(r.t.name)} per onderdeel</summary><div class="wrap"><table><thead><tr><th>Onderdeel</th><th class="n">Gemeten</th><th class="n">Omgerekend</th></tr></thead><tbody>`;
+      for(let i=0;i<r.n;i++){const v=segDur(r.t,i);h+=`<tr><td>${SEGS[i][0]}</td><td class="n">${fmt(v)}</td><td class="n">${fmt(v*factor(i,r.t))}</td></tr>`}
+      h+=`</tbody></table></div></details>`});
+    h+=`<div><button class="copy" id="copy">Uitslag kopiëren</button><span class="toast" id="toast" hidden>Gekopieerd</span></div>`;
+    res.innerHTML=h;
+    document.getElementById("copy").onclick=async()=>{
+      const txt="HYROX-simulatie, verwachte racetijden\n"+rows.map((r,i)=>`${i+1}. ${r.t.name}: ${fmt(r.p)} (gemeten ${r.t.start?fmt((r.n===N?r.t.laps[N-1]:now)-r.t.start):"—"}, ${r.n}/${N}, lopen ${cfg(r.t).runPct}%, stations ${cfg(r.t).stationPct}%)`).join("\n");
+      try{await navigator.clipboard.writeText(txt);const t=document.getElementById("toast");t.hidden=false;setTimeout(()=>t.hidden=true,2000)}catch(e){}
+    };
+  }
+  const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+  // ---------- settings ----------
+  ["runPct","stationPct","runCorr","rox"].forEach(k=>{
+    const inp=document.getElementById(k);inp.value=S.settings[k];
+    inp.onchange=()=>{let v=parseFloat(inp.value);const min=+inp.min,max=+inp.max;
+      if(!isFinite(v))v=S.settings[k];v=Math.min(max,Math.max(min,v));inp.value=v;S.settings[k]=v;save()};
+  });
+  const reset=document.getElementById("reset");let rt;
+  reset.onclick=()=>{
+    if(reset.classList.contains("arm")){S.teams.forEach(t=>{t.start=null;t.laps=[]});save();renderGrid();
+      reset.classList.remove("arm");reset.textContent="Alle tijden wissen";return}
+    reset.classList.add("arm");reset.textContent="Tik nogmaals om alles te wissen";
+    clearTimeout(rt);rt=setTimeout(()=>{reset.classList.remove("arm");reset.textContent="Alle tijden wissen"},3000);
+  };
+
+  // ---------- tabs ----------
+  document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+    document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-pressed",x===b));
+    ["timer","uitslag","instellingen"].forEach(v=>document.getElementById("v-"+v).hidden=v!==b.dataset.view);
+    if(b.dataset.view==="uitslag")renderRes();
+    if(b.dataset.view==="timer")renderGrid();
+  });
+
+  renderGrid();setInterval(tick,250);
+})();
+</script>
+</body>
+</html>
