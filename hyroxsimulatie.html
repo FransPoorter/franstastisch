@@ -40,12 +40,10 @@ button{cursor:pointer;border-radius:0}
 .tabs{display:flex;gap:0;border:1px solid var(--line);margin-left:auto}
 .tabs button{border:0;background:none;padding:9px 16px;font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:14px}
 .tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
-.startall{border:1px solid var(--ink);background:var(--orange);color:#fff;font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.1em;font-size:15px;padding:11px 20px}
-
 .resetall{border:1px solid var(--ink);background:none;color:var(--ink);font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.1em;font-size:15px;padding:11px 18px}
 .resetall.arm{background:var(--ink);color:var(--bg)}
 main{padding:18px;max-width:1500px;margin:0 auto}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:16px}
 
 .team{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:12px}
 .team.live{border-top-color:var(--orange)}
@@ -115,6 +113,8 @@ details{border-top:1px solid var(--line);padding:10px 0}
 summary{cursor:pointer;font-weight:700}
 .copy{border:1px solid var(--ink);background:var(--orange);color:#fff;font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:11px 18px;align-self:flex-start}
 .toast{color:var(--orange);font-weight:700;margin-left:10px}
+.status{color:var(--orange);font-size:14px;font-weight:600}
+.status:empty{display:none}
 [hidden]{display:none!important}
 @media (max-width:640px){.tabs{margin-left:0;width:100%}.tabs button{flex:1;padding:9px 6px}.top h1{display:none}}
 @media (prefers-reduced-motion:reduce){.go:active{transform:none}}
@@ -122,14 +122,14 @@ summary{cursor:pointer;font-weight:700}
 </head>
 <body>
 <header class="top">
-  <a class="logo" href="/" aria-label="Terug naar franstastisch.nl">
+  <a class="logo" href="/hyroxsimulatie" aria-label="Naar de HYROX-timer">
     <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#EC6D2C" stroke-width="2.4" stroke-linejoin="miter"><path d="M3 39V30h6v9M14 39V24h6v15M25 39V20h6v19"/><path d="M4 22l7-8 5 4 9-9 5 3 7-7"/><path d="M33 4h5v5" /></svg>
     <span class="bar"></span>
     <span class="wm"><b>ELEV8</b><span>HYBRID FITNESS</span></span>
   </a>
   <h1>HYROX-simulatie</h1>
   <span class="clock num" id="clock">--:--</span>
-  <button class="startall" id="startall">Start alle teams</button>
+  <span class="status" id="appStatus" role="status" aria-live="polite"></span>
   <button class="resetall" id="resetall">Reset</button>
   <nav class="tabs" aria-label="Weergave">
     <button data-view="timer" aria-pressed="true">Timer</button>
@@ -146,7 +146,7 @@ summary{cursor:pointer;font-weight:700}
   <section id="v-instellingen" hidden>
     <div class="panel">
       <h2>Simulatie en omrekening</h2>
-      <p>Gemeten tijden worden omgerekend naar een volledige HYROX: lopen en stations apart, plus een vaste toeslag voor de Roxzone. Tot het eerste onderdeel klaar is, toont een team nog geen verwachte tijd. Dit zijn de standaardwaarden voor alle teams; loopafstand en stationvolume pas je per team aan op de teamkaart.</p>
+      <p>De racetijd wordt geschat zodra minstens één looponderdeel en één station zijn afgerond. De omrekening veronderstelt dat tijd evenredig verandert met loopafstand en stationvolume. De schatting voorspelt geen extra vertraging door vermoeidheid; de Roxzone blijft een vaste toeslag. Dit zijn de standaardwaarden voor alle teams; loopafstand en stationvolume pas je per team aan op de teamkaart.</p>
       <div class="field"><label for="runPct">Loopafstand in de simulatie (%)</label><span>70 betekent 700 m per run in plaats van 1 km.</span><input id="runPct" type="number" min="10" max="100" step="5" inputmode="numeric"></div>
       <div class="field"><label for="stationPct">Stationvolume in de simulatie (%)</label><span>100 betekent volledige afstanden en herhalingen.</span><input id="stationPct" type="number" min="10" max="100" step="5" inputmode="numeric"></div>
       <div class="field"><label for="runCorr">Vertraging over de volle loopafstand (%)</label><span>Op een langere run loop je iets trager. Telt alleen mee als de loopafstand onder 100% ligt.</span><input id="runCorr" type="number" min="0" max="20" step="1" inputmode="numeric"></div>
@@ -165,11 +165,69 @@ summary{cursor:pointer;font-weight:700}
     ["Run 7","r",330],["Sandbag lunges","s",300],["Run 8","r",335],["Wall balls","s",360]
   ];
   const N=SEGS.length, KEY="hyrox-sim-v1";
+  const DEFAULT_SETTINGS={runPct:70,stationPct:100,runCorr:3,rox:20};
+  const SETTING_LIMITS={runPct:[10,100],stationPct:[10,100],runCorr:[0,20],rox:[0,90]};
   const mkTeam=i=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:"Team "+i,start:null,laps:[]});
+  const status=document.getElementById("appStatus");
+  const reportStorageError=message=>{status.textContent=message};
+  function boundedSetting(value,key){
+    const [min,max]=SETTING_LIMITS[key];
+    return Number.isFinite(value)?Math.min(max,Math.max(min,value)):DEFAULT_SETTINGS[key];
+  }
+  function normalizeTeam(team,index){
+    if(!team||typeof team!=="object") return null;
+    const id=typeof team.id==="string"&&team.id?team.id:mkTeam(index+1).id;
+    const name=typeof team.name==="string"?team.name.slice(0,60):"Team "+(index+1);
+    const start=Number.isFinite(team.start)&&team.start>0?team.start:null;
+    const laps=[];
+    let previous=start;
+    if(start&&Array.isArray(team.laps)){
+      for(const lap of team.laps.slice(0,N)){
+        if(!Number.isFinite(lap)||lap<previous) break;
+        laps.push(lap);
+        previous=lap;
+      }
+    }
+    const cfg={};
+    if(team.cfg&&typeof team.cfg==="object"){
+      for(const key of ["runPct","stationPct"]){
+        if(Number.isFinite(team.cfg[key])) cfg[key]=boundedSetting(team.cfg[key],key);
+      }
+    }
+    return {id,name,start,laps,...(Object.keys(cfg).length?{cfg}:{})};
+  }
   let S;
-  try{S=JSON.parse(localStorage.getItem(KEY)||"null")}catch(e){S=null}
-  if(!S||!Array.isArray(S.teams)) S={settings:{runPct:70,stationPct:100,runCorr:3,rox:20},teams:[1,2,3,4].map(mkTeam)};
-  const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+  try{
+    const stored=JSON.parse(localStorage.getItem(KEY)||"null");
+    if(stored&&Array.isArray(stored.teams)){
+      const settings={};
+      for(const key of Object.keys(DEFAULT_SETTINGS)){
+        settings[key]=boundedSetting(stored.settings&&stored.settings[key],key);
+      }
+      let teams=stored.teams.map(normalizeTeam).filter(Boolean);
+      const defaultTeams=teams.length===4&&teams.every((team,index)=>
+        team.name==="Team "+(index+1)&&!team.start&&!team.laps.length&&!team.cfg
+      );
+      if(defaultTeams) teams=teams.slice(0,1);
+      if(!teams.length) teams=[mkTeam(1)];
+      S={settings,teams};
+    }else{
+      S={settings:{...DEFAULT_SETTINGS},teams:[mkTeam(1)]};
+    }
+  }catch(error){
+    console.error("Could not load HYROX simulation data.",error);
+    reportStorageError("Opgeslagen gegevens konden niet worden gelezen. Er is een nieuwe simulatie gestart.");
+    S={settings:{...DEFAULT_SETTINGS},teams:[mkTeam(1)]};
+  }
+  const save=()=>{
+    try{
+      localStorage.setItem(KEY,JSON.stringify(S));
+      status.textContent="";
+    }catch(error){
+      console.error("Could not save HYROX simulation data.",error);
+      reportStorageError("Opslaan mislukt. Controleer de opslagruimte en browserinstellingen.");
+    }
+  };
 
   const pad=n=>String(n).padStart(2,"0");
   function fmt(ms){
@@ -193,8 +251,8 @@ summary{cursor:pointer;font-weight:700}
     let pr=0,rr=0,ps=0,rs=0;
     for(let i=0;i<n;i++){const v=segDur(t,i)*factor(i,t),ref=SEGS[i][2]*1000;
       if(isRun(i)){pr+=v;rr+=ref}else{ps+=v;rs+=ref}}
-    const all=(pr+ps)/(rr+rs);
-    const perfR=rr?pr/rr:all, perfS=rs?ps/rs:all;
+    if(n<N&&(!rr||!rs)) return null;
+    const perfR=pr/rr, perfS=ps/rs;
     const perf=i=>isRun(i)?perfR:perfS;
     let total=pr+ps+16*S.settings.rox*1000;
     if(n===N) return total;
@@ -221,12 +279,12 @@ summary{cursor:pointer;font-weight:700}
     let seg="Klaar om te starten", btn="Start", bcls="idle";
     if(fin){seg="Gefinisht";btn="Gefinisht";bcls=""}
     else if(started){const s=SEGS[n];seg=`<span class="tag ${s[1]}">${s[1]==="r"?"Lopen":"Station"}</span>${s[0]}`;btn=`Klaar met ${s[0]}`;bcls=s[1]}
-    return `<header class="thead"><input aria-label="Teamnaam" value="${t.name.replace(/"/g,"&quot;")}"><button class="del">Verwijderen</button></header>
+    return `<header class="thead"><input aria-label="Teamnaam" maxlength="60" value="${esc(t.name)}"><button class="del">Verwijderen</button></header>
       ${cfgHTML(t)}
       <div class="strip" aria-hidden="true">${cells}</div>
       <div class="now"><span class="seg">${seg}</span><span class="segt num" data-segt></span></div>
       <div class="nums"><div><b class="num" data-total>0:00</b><small>Gemeten tijd</small></div>
-      <div class="pred"><b class="num" data-pred>—</b><small>Verwachte racetijd</small></div></div>
+      <div class="pred"><b class="num" data-pred>—</b><small>Geschatte racetijd (na 1 run + station)</small></div></div>
       <button class="go ${bcls}" ${fin?"disabled":""}>${btn}</button>
       <button class="undo" ${n||started?"":"disabled"}>${n?"Laatste onderdeel ongedaan maken":"Start ongedaan maken"}</button>`;
   }
@@ -272,13 +330,26 @@ summary{cursor:pointer;font-weight:700}
       el.querySelector("[data-segt]").textContent=t.start&&!fin?fmt(now-(n?t.laps[n-1]:t.start)):"";
       el.querySelector("[data-pred]").textContent=fmt(predict(t,now));
     });
+    if(!document.getElementById("v-uitslag").hidden){
+      const rankedRows=[];
+      res.querySelectorAll("tr[data-result-team]").forEach((row,index)=>{
+        const t=S.teams.find(team=>team.id===row.dataset.resultTeam);
+        if(!t)return;
+        const end=t.laps.length===N?t.laps[N-1]:now;
+        const prediction=predict(t,now);
+        row.querySelector("[data-result-total]").textContent=t.start?fmt(end-t.start):"—";
+        row.querySelector("[data-result-pred]").textContent=fmt(prediction);
+        rankedRows.push({row,prediction,index});
+      });
+      rankedRows.sort((a,b)=>{
+        if(a.prediction==null)return b.prediction==null?a.index-b.index:1;
+        if(b.prediction==null)return -1;
+        return a.prediction-b.prediction||a.index-b.index;
+      });
+      const tbody=res.querySelector("tbody");
+      rankedRows.forEach(({row})=>tbody.appendChild(row));
+    }
   }
-  document.getElementById("startall").onclick=()=>{
-    const now=Date.now();let any=false;
-    S.teams.forEach(t=>{if(!t.start){t.start=now;any=true}});
-    if(any){save();renderGrid();wake()}
-  };
-
   const resetAll=document.getElementById("resetall");let rat;
   resetAll.onclick=()=>{
     if(resetAll.classList.contains("arm")){
@@ -301,10 +372,10 @@ summary{cursor:pointer;font-weight:700}
     const rows=S.teams.map(t=>({t,p:predict(t,now),n:t.laps.length})).sort((a,b)=>{
       if(a.p==null)return 1;if(b.p==null)return -1;return a.p-b.p});
     let h=`<h2 style="font-size:26px;margin:0">Uitslag</h2>
-      <p style="margin:0;color:var(--muted)">Gesorteerd op verwachte racetijd. Standaard: lopen ${S.settings.runPct}%, stations ${S.settings.stationPct}%.</p>
+      <p style="margin:0;color:var(--muted)">Gesorteerd op geschatte racetijd. Een schatting verschijnt na minstens één afgeronde run en één afgerond station; de omrekening gaat uit van evenredige tijd per volume en voorspelt geen extra vermoeidheid. Standaard: lopen ${S.settings.runPct}%, stations ${S.settings.stationPct}%.</p>
       <div class="wrap"><table><thead><tr><th>Team</th><th>Lopen / stations</th><th class="n">Onderdelen</th><th class="n">Gemeten</th><th class="n">Verwachte racetijd</th></tr></thead><tbody>`;
     rows.forEach(r=>{const end=r.n===N?r.t.laps[N-1]:now;
-      h+=`<tr><td>${esc(r.t.name)}</td><td>${cfg(r.t).runPct}% / ${cfg(r.t).stationPct}%</td><td class="n">${r.n}/${N}</td><td class="n">${r.t.start?fmt(end-r.t.start):"—"}</td><td class="n big">${fmt(r.p)}</td></tr>`});
+      h+=`<tr data-result-team="${esc(r.t.id)}"><td>${esc(r.t.name)}</td><td>${cfg(r.t).runPct}% / ${cfg(r.t).stationPct}%</td><td class="n">${r.n}/${N}</td><td class="n" data-result-total>${r.t.start?fmt(end-r.t.start):"—"}</td><td class="n big" data-result-pred>${fmt(r.p)}</td></tr>`});
     h+=`</tbody></table></div>`;
     rows.forEach(r=>{if(!r.n)return;
       h+=`<details><summary>${esc(r.t.name)} per onderdeel</summary><div class="wrap"><table><thead><tr><th>Onderdeel</th><th class="n">Gemeten</th><th class="n">Omgerekend</th></tr></thead><tbody>`;
@@ -313,8 +384,17 @@ summary{cursor:pointer;font-weight:700}
     h+=`<div><button class="copy" id="copy">Uitslag kopiëren</button><span class="toast" id="toast" hidden>Gekopieerd</span></div>`;
     res.innerHTML=h;
     document.getElementById("copy").onclick=async()=>{
-      const txt="HYROX-simulatie, verwachte racetijden\n"+rows.map((r,i)=>`${i+1}. ${r.t.name}: ${fmt(r.p)} (gemeten ${r.t.start?fmt((r.n===N?r.t.laps[N-1]:now)-r.t.start):"—"}, ${r.n}/${N}, lopen ${cfg(r.t).runPct}%, stations ${cfg(r.t).stationPct}%)`).join("\n");
-      try{await navigator.clipboard.writeText(txt);const t=document.getElementById("toast");t.hidden=false;setTimeout(()=>t.hidden=true,2000)}catch(e){}
+      const copiedAt=Date.now();
+      const currentRows=S.teams.map(t=>({t,p:predict(t,copiedAt),n:t.laps.length})).sort((a,b)=>{
+        if(a.p==null)return 1;if(b.p==null)return -1;return a.p-b.p});
+      const txt="HYROX-simulatie, geschatte racetijden\n"+currentRows.map((r,i)=>`${i+1}. ${r.t.name}: ${fmt(r.p)} (gemeten ${r.t.start?fmt((r.n===N?r.t.laps[N-1]:copiedAt)-r.t.start):"—"}, ${r.n}/${N}, lopen ${cfg(r.t).runPct}%, stations ${cfg(r.t).stationPct}%)`).join("\n");
+      try{
+        await navigator.clipboard.writeText(txt);
+        const t=document.getElementById("toast");t.hidden=false;setTimeout(()=>t.hidden=true,2000);
+      }catch(error){
+        console.error("Could not copy HYROX results.",error);
+        reportStorageError("Kopiëren is niet gelukt. Controleer de browserrechten.");
+      }
     };
   }
   const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
