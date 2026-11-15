@@ -40,6 +40,7 @@ button{cursor:pointer;border-radius:0}
 .tabs{display:flex;gap:0;border:1px solid var(--line);margin-left:auto}
 .tabs button{border:0;background:none;padding:9px 16px;font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:14px}
 .tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.page-link{border:1px solid var(--ink);background:none;color:var(--ink);text-decoration:none;font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:14px;padding:10px 14px}
 .resetall{border:1px solid var(--ink);background:none;color:var(--ink);font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.1em;font-size:15px;padding:11px 18px}
 .resetall.arm{background:var(--ink);color:var(--bg)}
 main{padding:18px;max-width:1500px;margin:0 auto}
@@ -130,6 +131,7 @@ summary{cursor:pointer;font-weight:700}
   <h1>HYROX-simulatie</h1>
   <span class="clock num" id="clock">--:--</span>
   <span class="status" id="appStatus" role="status" aria-live="polite"></span>
+  <a class="page-link" href="/circuitbuilder">Circuit builder</a>
   <button class="resetall" id="resetall">Reset</button>
   <nav class="tabs" aria-label="Weergave">
     <button data-view="timer" aria-pressed="true">Timer</button>
