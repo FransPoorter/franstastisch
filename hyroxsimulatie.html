@@ -252,7 +252,7 @@ summary{cursor:pointer;font-weight:700}
       }
       let teams=stored.teams.map(normalizeTeam).filter(Boolean);
       const defaultTeams=teams.length===4&&teams.every((team,index)=>
-        team.name==="Team "+(index+1)&&!team.start&&!team.laps.length&&!team.cfg&&!team.plan.goalSeconds&&!team.plan.paceSeconds
+        team.name==="Team "+(index+1)&&!team.start&&!team.laps.length&&!team.cfg&&!team.plan.goalSeconds&&!team.plan.paceSeconds&&team.plan.division==="openMen"
       );
       if(defaultTeams) teams=teams.slice(0,1);
       if(!teams.length) teams=[mkTeam(1)];
@@ -310,7 +310,7 @@ summary{cursor:pointer;font-weight:700}
   function timeInput(seconds,withHours){
     if(!seconds)return "";
     const hours=Math.floor(seconds/3600),minutes=Math.floor(seconds%3600/60),secs=seconds%60;
-    return withHours&&hours?`${hours}:${pad(minutes)}:${pad(secs)}`:`${Math.floor(seconds/60)}:${pad(secs)}`;
+    return withHours&&seconds>=3600?`${hours}:${pad(minutes)}:${pad(secs)}`:`${Math.floor(seconds/60)}:${pad(secs)}`;
   }
   const division=t=>DIVISIONS.find(item=>item.value===t.plan.division)||DIVISIONS[0];
   function targetPlan(t){
@@ -355,6 +355,7 @@ summary{cursor:pointer;font-weight:700}
   const openPlan=new Set();
   function planHTML(t){
     const open=openPlan.has(t.id),plan=targetPlan(t);
+    const invalid=!plan.ok&&plan.message.startsWith("Niet haalbaar:");
     const preview=plan.ok
       ?`Doel ${fmt(plan.goalSeconds*1000)} · lopen ${fmt(plan.runSeconds*1000)} · stations ${fmt(plan.stationBudget*1000)} · Roxzone ${fmt(plan.roxSeconds*1000)}`
       :plan.message;
@@ -363,7 +364,7 @@ summary{cursor:pointer;font-weight:700}
         <label for="goal-${esc(t.id)}">Streeftijd (HH:MM:SS of MM:SS)<input id="goal-${esc(t.id)}" type="text" data-plan="goalSeconds" inputmode="numeric" maxlength="8" placeholder="1:15:00" value="${timeInput(t.plan.goalSeconds,true)}"></label>
         <label for="pace-${esc(t.id)}">Looptempo (MM:SS per km)<input id="pace-${esc(t.id)}" type="text" data-plan="paceSeconds" inputmode="numeric" maxlength="5" placeholder="5:30" value="${timeInput(t.plan.paceSeconds,false)}"></label>
         <label for="division-${esc(t.id)}">Divisie<select id="division-${esc(t.id)}" data-plan-division>${DIVISIONS.map(item=>`<option value="${item.value}" ${item.value===t.plan.division?"selected":""}>${item.label}</option>`).join("")}</select></label>
-        <p class="plan-message${plan.ok?"":" error"}" role="status">${esc(preview)}</p>
+        <p class="plan-message${invalid?" error":""}" role="status">${esc(preview)}</p>
         <p class="benchmark-note">De stations worden verdeeld met Pro/Elite-verhoudingen per geslacht. Open-specifieke openbare splitdata zijn niet gevonden; voor Open is dit dus nadrukkelijk een Pro/Elite-proxy. Roxzone gebruikt de instelling van deze simulator.</p>
       </div>
       <div class="plan-preview">${esc(preview)}</div>`;
@@ -511,6 +512,7 @@ summary{cursor:pointer;font-weight:700}
       h+=`<details><summary>${esc(r.t.name)} per onderdeel</summary><div class="wrap"><table><thead><tr><th>Onderdeel</th><th class="n">Gemeten</th><th class="n">Omgerekend</th></tr></thead><tbody>`;
       for(let i=0;i<r.n;i++){const v=segDur(r.t,i);h+=`<tr><td>${SEGS[i][0]}</td><td class="n">${fmt(v)}</td><td class="n">${fmt(v*factor(i,r.t))}</td></tr>`}
       h+=`</tbody></table></div></details>`});
+    rows.forEach(r=>{if(r.n===N&&(r.t.plan.goalSeconds||r.t.plan.paceSeconds))h+=planAnalysisHTML(r.t)});
     h+=`<div><button class="copy" id="copy">Uitslag kopiëren</button><span class="toast" id="toast" hidden>Gekopieerd</span></div>`;
     res.innerHTML=h;
     document.getElementById("copy").onclick=async()=>{
@@ -526,6 +528,45 @@ summary{cursor:pointer;font-weight:700}
         reportStorageError("Kopiëren is niet gelukt. Controleer de browserrechten.");
       }
     };
+  }
+  function planAnalysisHTML(t){
+    const plan=targetPlan(t);
+    if(!plan.ok)return `<section class="plan-analysis"><h3>Doelplan en analyse: ${esc(t.name)}</h3><p>${esc(plan.message)}</p></section>`;
+    const actualRows=SEGS.map((segment,index)=>({
+      name:segment[0],
+      target:plan.targets[index],
+      actual:segDur(t,index)*factor(index,t)/1000
+    }));
+    actualRows.push({name:"Roxzone (totaal)",target:plan.roxSeconds,actual:16*S.settings.rox});
+    const actualTotal=actualRows.reduce((sum,row)=>sum+row.actual,0);
+    const delta=actualTotal-plan.goalSeconds;
+    const max=Math.max(...actualRows.map(row=>Math.max(row.target,row.actual)),1);
+    const signed=value=>`${value>0?"+":value<0?"-":""}${fmt(Math.abs(value)*1000)}`;
+    const overTarget=actualRows.filter(row=>row.actual-row.target>30)
+      .sort((a,b)=>(b.actual-b.target)-(a.actual-a.target)).slice(0,3);
+    const chart=actualRows.map(row=>{
+      const targetWidth=Math.max(0,row.target/max*100),actualWidth=Math.max(0,row.actual/max*100);
+      return `<li><span class="chart-name">${esc(row.name)}</span><div class="chart-bars">
+        <div class="barline"><span class="bar-label">Doel</span><span class="bar" aria-hidden="true" style="width:${targetWidth}%"></span><span class="bar-value">${fmt(row.target*1000)}</span></div>
+        <div class="barline"><span class="bar-label">Werkelijk</span><span class="bar actual" aria-hidden="true" style="width:${actualWidth}%"></span><span class="bar-value">${fmt(row.actual*1000)}</span></div>
+      </div></li>`;
+    }).join("");
+    const table=actualRows.map(row=>`<tr><td>${esc(row.name)}</td><td class="n">${fmt(row.target*1000)}</td><td class="n">${fmt(row.actual*1000)}</td><td class="n">${signed(row.actual-row.target)}</td></tr>`).join("");
+    const insights=overTarget.length
+      ?`<p><strong>Grootste afwijkingen t.o.v. het plan:</strong> ${overTarget.map(row=>`${esc(row.name)} ${signed(row.actual-row.target)}`).join("; ")}. Dit zijn aandachtspunten, geen gegarandeerde tijdwinst.</p>`
+      :`<p>Geen onderdeel ligt meer dan 30 seconden boven de richttijd.</p>`;
+    return `<section class="plan-analysis">
+      <h3>Doelplan en analyse: ${esc(t.name)}</h3>
+      <p>Divisie ${plan.division.label} · tempo ${timeInput(plan.paceSeconds,false)}/km · doel ${fmt(plan.goalSeconds*1000)}. De gemeten onderdelen zijn omgerekend naar volledige volumes.</p>
+      <p>Gemeten totaal ${fmt(actualTotal*1000)} tegenover doel ${fmt(plan.goalSeconds*1000)} (${signed(delta)}). Een positieve afwijking betekent langzamer dan gepland.</p>
+      ${insights}
+      <div class="chart-legend"><span><i></i> Doel</span><span><i class="actual-key"></i> Werkelijk</span></div>
+      <div class="wrap" role="region" aria-label="Grafiek doel versus werkelijk per onderdeel" tabindex="0"><ol class="split-chart">${chart}</ol></div>
+      <div class="wrap"><table><caption>Doel- en gemeten tijden per onderdeel</caption><thead><tr><th>Onderdeel</th><th class="n">Doel</th><th class="n">Werkelijk</th><th class="n">Verschil</th></tr></thead><tbody>${table}</tbody>
+        <tfoot><tr><th scope="row">Totaal incl. Roxzone</th><td class="n">${fmt(plan.goalSeconds*1000)}</td><td class="n">${fmt(actualTotal*1000)}</td><td class="n">${signed(delta)}</td></tr></tfoot>
+      </table></div>
+      <p class="source-note">Stationverhoudingen zijn gebaseerd op de gemiddelde stationstijden van de top 100 PRO-resultaten per geslacht in seizoen 2024/25 uit <a href="${BENCHMARK_SOURCE}" target="_blank" rel="noopener">Rappelt et al., Frontiers in Physiology (2026)</a>. Er zijn geen openbare Open-splits in die studie; voor Open gebruikt dit plan daarom dezelfde Pro/Elite-verhouding als proxy, niet een Open-specifieke norm. De divisiekeuze verandert de benchmarkverhouding niet. Roxzone volgt de instelling van deze simulator. Een aparte categoriebenchmarkstudie is <a href="https://pubmed.ncbi.nlm.nih.gov/42189569/" target="_blank" rel="noopener">niet open toegankelijk</a>. Dit is een indicatieve verdeling, geen voorspelling.</p>
+    </section>`;
   }
   const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
