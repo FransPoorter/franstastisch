@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Studio-dashboard | Slaappartner Slaapstudio – Frans Poorter</title>
+  <link rel="icon" href="img/beddenspecialist.svg">
+  <link rel="stylesheet" href="slaapstudio.css">
+</head>
+<body class="studio">
+  <div id="ss-header"></div>
+  <main class="wrap" style="max-width:1440px">
+    <div class="studio-top">
+      <div><span class="kicker">Studio-dashboard · adviseur</span><h1 style="font-size:1.9rem;margin:0">Slaapdossiers Frans Poorter</h1></div>
+      <div class="btn-row">
+        <button class="btn btn-dark btn-sm" id="seed" type="button">Voorbeelddossiers laden</button>
+        <a class="btn btn-outline btn-sm" href="aanvragen.html?nieuw" target="_blank">Nieuwe aanvraag als klant ↗</a>
+        <button class="btn btn-ghost btn-sm" id="wipe" type="button">Alles wissen</button>
+      </div>
+    </div>
+    <div class="demo-bar"><b>Demo</b> Er is geen login. In het echt logt de adviseur in en komen statussen automatisch binnen uit SlaapID, de betaalprovider en de bezorgpartner.</div>
+    <div class="kpis" id="kpis"></div>
+    <div class="grid-2" style="grid-template-columns:1fr;gap:18px">
+      <div class="card" id="contacts"></div>
+    </div>
+    <h2 style="margin-top:30px;font-size:1.3rem">Klantreis per fase</h2>
+    <div class="kanban" id="kanban"></div>
+    <div class="studio-detail" id="detail"></div>
+  </main>
+  <div id="ss-footer"></div>
+  <script src="js/core.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/flow.js"></script>
+  <script src="js/studio.js"></script>
+</body>
+</html>

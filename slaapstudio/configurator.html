@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ontwerp jouw bed | Slaappartner Slaapstudio – Frans Poorter</title>
+  <link rel="icon" href="img/beddenspecialist.svg">
+  <link rel="stylesheet" href="slaapstudio.css">
+</head>
+<body class="has-pricebar">
+  <div id="ss-header"></div>
+  <main class="wrap">
+    <div id="cfg-intro" style="padding-top:32px"></div>
+    <div class="config-shell">
+      <div class="config-stage">
+        <div class="config-tabs" id="view-tabs">
+          <button class="active" data-view="top" type="button">Blokken (bovenaanzicht)</button>
+          <button data-view="front" type="button">Vooraanzicht</button>
+          <button data-view="side" type="button">Zijaanzicht</button>
+        </div>
+        <div class="chart-wrap" id="stage-view" style="max-width:520px;margin:0 auto"></div>
+        <div id="stage-extra" style="margin-top:12px"></div>
+      </div>
+      <div>
+        <div class="config-tabs" id="cfg-tabs"></div>
+        <div class="card" id="cfg-panel"></div>
+      </div>
+    </div>
+  </main>
+  <div class="price-bar"><div class="wrap">
+    <div class="price"><small id="pb-label">Totaalprijs</small><span id="pb-total">€ 0</span> <small id="pb-sub"></small></div>
+    <div class="btn-row"><button class="btn btn-outline btn-sm" id="pb-save" type="button">Bewaar in mijn dossier</button><button class="btn btn-primary" id="pb-order" type="button">Bestellen</button></div>
+  </div></div>
+  <div class="modal-back" id="order-modal"><div class="modal" style="max-width:640px"><button class="close" type="button" data-close>×</button><div id="order-body"></div></div></div>
+  <div id="ss-footer"></div>
+  <script src="js/core.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/flow.js"></script>
+  <script src="js/configurator.js"></script>
+</body>
+</html>

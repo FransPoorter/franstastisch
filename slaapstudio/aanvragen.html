@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SlaapID aanvragen | Slaappartner Slaapstudio – Frans Poorter</title>
+  <link rel="icon" href="img/beddenspecialist.svg">
+  <link rel="stylesheet" href="slaapstudio.css">
+</head>
+<body style="background:var(--bg-soft)">
+  <div id="ss-header"></div>
+  <main class="wrap">
+    <div class="wizard-shell">
+      <aside class="wizard-side">
+        <span class="kicker">SlaapID aanvragen</span>
+        <ol class="wizard-steps" id="wz-steps"></ol>
+        <div class="notice sand small" style="margin-top:20px">Twijfel je ergens over? Klik rechtsonder op <b>Liever persoonlijk contact?</b> We helpen je graag verder.</div>
+      </aside>
+      <section class="wizard-panel">
+        <div class="progress"><div id="wz-progress" style="width:0"></div></div>
+        <form id="wz-form" novalidate></form>
+        <div class="wizard-nav" id="wz-nav">
+          <button class="btn btn-ghost" type="button" id="wz-back">← Vorige</button>
+          <button class="btn btn-primary" type="button" id="wz-next">Volgende →</button>
+        </div>
+      </section>
+    </div>
+  </main>
+  <div id="ss-footer"></div>
+  <script src="js/core.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/wizard.js"></script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slaappartner Slaapstudio | Beddenspecialist Frans Poorter Nijkerk</title>
+  <meta name="description" content="Eén bed, afgesteld op jouw gemeten slaap. Start je SlaapID-thuismeting bij Beddenspecialist Frans Poorter in Nijkerk.">
+  <link rel="icon" href="img/beddenspecialist.svg">
+  <link rel="stylesheet" href="slaapstudio.css">
+</head>
+<body>
+  <div id="ss-header"></div>
+
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <span class="kicker">Slaappartner Slaapstudio · Nijkerk</span>
+        <h1>Ontdek jouw SlaapID.<br>Wij stellen je bed erop af.</h1>
+        <p class="lead">Geen showroom vol twijfel, maar één bed dat we afstellen op hoe jij écht slaapt. Je meet drie nachten thuis in je eigen bed, wij vertalen dat naar de juiste hardheid per zone.</p>
+        <div class="btn-row" style="margin-top:28px">
+          <a class="btn btn-primary" href="aanvragen.html">Start je SlaapID-meting</a>
+          <a class="btn btn-outline" style="border-color:#fff;color:#fff" href="#methode">Zo werkt het</a>
+        </div>
+        <p class="small" style="margin-top:18px;opacity:.8">€ 75 per slaper · volledig verrekend bij aankoop van je bed</p>
+      </div>
+      <div class="hero-card">
+        <h3>Al aan het meten?</h3>
+        <p class="small" style="opacity:.85">Open je slaapdossier met de code uit je bevestigingsmail.</p>
+        <form id="open-form">
+          <div class="field"><label for="code" style="color:#fff">Dossiercode</label><input id="code" type="text" placeholder="SS-1234" autocomplete="off" style="text-transform:uppercase"></div>
+          <button class="btn btn-primary" type="submit" style="width:100%">Open mijn dossier</button>
+          <p id="open-err" class="small hidden" style="color:#ffcf3d;margin:10px 0 0">Dit dossier vinden we niet in deze browser. Tip: laad voorbeelddossiers in het <a href="studio.html" style="color:#fff">studio-dashboard</a>.</p>
+        </form>
+        <div id="last-dossier" class="small hidden" style="margin-top:14px"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="usps"><div class="wrap"><ul>
+    <li><img src="img/usp-checkmark.svg" alt="">Onafhankelijke thuismeting met de SlaapID-sensor</li>
+    <li><img src="img/usp-checkmark.svg" alt="">Advies door SlaapFysio-gecertificeerde ligexperts</li>
+    <li><img src="img/usp-checkmark.svg" alt="">Wetenschappelijk onderbouwd met de VU</li>
+    <li><img src="img/usp-checkmark.svg" alt="">Instelgarantie: later altijd bij te stellen</li>
+  </ul></div></div>
+
+  <section class="block soft" id="methode">
+    <div class="wrap">
+      <div class="section-head center center">
+        <div class="shape-line"></div>
+        <span class="kicker">Meetbaar beter liggen</span>
+        <h2>Meten, adviseren, afstellen, bewijzen</h2>
+        <p class="muted">Wij weten door te meten. Daarom begint jouw nieuwe bed niet in de winkel, maar in je eigen slaapkamer.</p>
+      </div>
+      <div class="steps">
+        <div class="step-card"><div class="num">1</div><h3>Meten</h3><p>Je slaapt drie nachten thuis met de SlaapID-sensor. Die legt je slaaphoudingen, bewegingen, bedklimaat en slaapritme vast.</p></div>
+        <div class="step-card"><div class="num">2</div><h3>Adviseren</h3><p>Het SlaapID-platform vertaalt je meting naar een persoonlijk advies: hardheid per zone, tijk en kussen.</p></div>
+        <div class="step-card"><div class="num">3</div><h3>Afstellen</h3><p>Je Beddelicious Blocks-matras heeft 10 zones met blokken van _xsoft tot _xfirm. Onze monteur stelt ze bij levering in.</p></div>
+        <div class="step-card"><div class="num">4</div><h3>Bewijzen</h3><p>Na een paar weken meet je opnieuw. Zo zie je zwart op wit wat je nieuwe bed oplevert, en stellen we zo nodig bij.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap grid-2" style="align-items:center">
+      <div>
+        <span class="kicker">Samen slapen, ieder z'n eigen helft</span>
+        <h2>Twee slapers? Twee metingen, twee afstellingen.</h2>
+        <p>Partners slapen zelden hetzelfde. De één ligt op de zij met brede schouders, de ander op de rug en heeft het altijd warm. Daarom krijgt ieder een eigen sensor, een eigen advies en een eigen matrashelft.</p>
+        <ul class="advice-list">
+          <li>Ieder vult de eigen slaapvragenlijst in</li>
+          <li>Twee sensoren, gelijktijdig drie nachten</li>
+          <li>Per persoon een eigen blokinstelling en tijk</li>
+          <li>Eén bed, één uitstraling: jullie kiezen samen stof, hoofdbord en poten</li>
+        </ul>
+        <div class="btn-row" style="margin-top:20px"><a class="btn btn-dark" href="aanvragen.html?personen=2">Meet samen</a><a class="btn btn-ghost" href="configurator.html">Bekijk de configurator</a></div>
+      </div>
+      <div class="card shadow center">
+        <div class="chart-wrap" id="duo-visual"></div>
+        <div style="margin-top:10px;display:flex;justify-content:center" id="duo-legend"></div>
+        <p class="small muted" style="margin:10px 0 0">Voorbeeld: links een zijligger met brede schouders, rechts een rugligger. Beweeg over een blok voor de zone.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block sand" id="scan">
+    <div class="wrap grid-2">
+      <div>
+        <span class="kicker">SlaapKwaliteitScore</span>
+        <h2>Hoe goed slaap jij eigenlijk?</h2>
+        <p>Vijf vragen, één minuut. Je krijgt direct een eerste indicatie en hoort of een SlaapID-meting voor jou zinvol is.</p>
+        <div id="scan-result" class="card hidden" style="margin-top:20px"></div>
+      </div>
+      <form class="card shadow" id="scan-form"></form>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="shape-line"></div>
+        <span class="kicker">Wetenschappelijk onderbouwd</span>
+        <h2>Onderzocht door de VU, SlaapFysio en Sleep Trade</h2>
+        <p class="muted">Deelnemers sliepen op een Blocks-matras dat was ingesteld volgens de SlaapID-adviesmethode, en vergeleken dat met hun eigen bed.</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><b>18<small>%</small></b><span>minder lage rugklachten</span></div>
+        <div class="stat"><b>25<small>%</small></b><span>beter slaapcomfort</span></div>
+        <div class="stat"><b>30<small>%</small></b><span>minder nekklachten</span></div>
+        <div class="stat"><b>25,6<small>%</small></b><span>minder schouderklachten</span></div>
+      </div>
+      <p class="small muted" style="margin-top:16px">Bronnen: <a href="https://www.beddenspecialist.nl/media/zbclqrpz/opmaak_onderzoek_a4_adviesmethode.pdf" target="_blank" rel="noopener">onderzoek lage rugklachten</a> · <a href="https://www.beddenspecialist.nl/media/5jmn4hgv/opmaak_onderzoek_nov2023_v4.pdf" target="_blank" rel="noopener">onderzoek nek- en schouderklachten</a></p>
+    </div>
+  </section>
+
+  <section class="block soft">
+    <div class="wrap grid-2" style="align-items:center">
+      <div>
+        <img src="img/blocks-gelaagd.jpg" alt="Beddelicious Blocks-matras met de instelbare blokken zichtbaar onder de toplaag" style="border-radius:24px;background:#fff" loading="lazy" onerror="this.style.display='none'">
+      </div>
+      <div>
+        <span class="kicker">Eén bed: Beddelicious Blocks</span>
+        <h2>Een matras dat meegroeit met jouw meting</h2>
+        <p>Onder de comfortlaag van het Blocks-matras liggen tien verwisselbare blokken met pocketvering. Elk blok bestaat in vijf hardheden. Zo krijgt elke zone van je lichaam precies de ondersteuning die je meting aangeeft.</p>
+        <p>Verandert er iets, zoals je gewicht, een blessure of een nieuwe slaaphouding? Dan wisselen we blokken. Je hoeft geen nieuw matras te kopen.</p>
+        <div id="levels" style="margin:18px 0"></div>
+        <a class="btn btn-dark" href="configurator.html">Ontwerp jouw bed</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="winkel">
+    <div class="wrap">
+      <div class="store">
+        <div class="info">
+          <span class="kicker">De studio</span>
+          <h2>Beddenspecialist Frans Poorter</h2>
+          <p>De ligexpert van Nijkerk en omstreken. In onze Slaapstudio staat één showbed met alle stalen, en bespreek je je meting met een slaapadviseur of slaapfysio.</p>
+          <dl id="store-dl"></dl>
+          <table class="hours" id="store-hours"></table>
+          <div class="btn-row" style="margin-top:20px">
+            <a class="btn btn-primary" href="#" data-human>Plan een afspraak</a>
+            <a class="btn btn-outline" id="route-btn" target="_blank" rel="noopener">Route</a>
+            <a class="btn btn-ghost" id="call-btn">Bel ons</a>
+          </div>
+        </div>
+        <div class="map">
+          <div>
+            <div style="font-size:3rem">📍</div>
+            <h3 style="margin-bottom:4px">Verlaat 6, Nijkerk</h3>
+            <p class="small muted">Gratis parkeren voor de deur</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block soft">
+    <div class="wrap" style="max-width:860px">
+      <div class="section-head"><span class="kicker">Veelgestelde vragen</span><h2>Goed om te weten</h2></div>
+      <details class="card" style="margin-bottom:10px" open><summary><b>Wat kost de SlaapID-meting?</b></summary><p style="margin-top:10px">€ 75 per slaper. Koop je daarna een Blocks-bed, dan verrekenen we het volledige bedrag. Het onderzoek is dus gratis als je bij ons koopt.</p></details>
+      <details class="card" style="margin-bottom:10px"><summary><b>Hoe draag ik de sensor?</b></summary><p style="margin-top:10px">Je draagt een kleine sensor op je borst, thuis in je eigen bed. Je slaapt gewoon zoals altijd. Na drie nachten stuur je hem terug of lever je hem in bij de studio.</p></details>
+      <details class="card" style="margin-bottom:10px"><summary><b>Is dit een medisch onderzoek?</b></summary><p style="margin-top:10px">Nee. De SlaapID-meting kijkt naar je lighouding, bewegingen, bedklimaat en ritme. Vermoed je slaapapneu, of slaap je al langer dan drie maanden slecht? Ga dan naar je huisarts.</p></details>
+      <details class="card" style="margin-bottom:10px"><summary><b>Wat gebeurt er met mijn slaapdata?</b></summary><p style="margin-top:10px">Je slaapdata blijft in de beveiligde database van SlaapID. Wij bewaren alleen de status van je meting, je matrasinstelling en een link naar je rapport. Daar geef je vooraf toestemming voor.</p></details>
+      <details class="card"><summary><b>Moet ik naar de winkel komen?</b></summary><p style="margin-top:10px">Nee, het kan helemaal online. Wil je toch stalen voelen, proefliggen of persoonlijk advies? Dan ben je van harte welkom in de studio, of we bellen of videobellen met je.</p></details>
+    </div>
+  </section>
+
+  <div id="ss-footer"></div>
+
+  <script src="js/core.js"></script>
+  <script src="js/model.js"></script>
+  <script>
+  (function () {
+    const { STORE, $, mount, getDossier, lastDossier, load, save, esc } = SS;
+    mount('home');
+
+    // dossier openen
+    $('#open-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const code = $('#code').value.trim().toUpperCase();
+      if (getDossier(code)) location.href = 'dossier.html?code=' + encodeURIComponent(code);
+      else $('#open-err').classList.remove('hidden');
+    });
+    const last = getDossier(lastDossier());
+    if (last) {
+      const el = $('#last-dossier');
+      el.innerHTML = `Laatst geopend: <a href="dossier.html?code=${esc(last.id)}" style="color:#cbe031;font-weight:600">${esc(last.id)} – ${esc(last.contact.naam)}</a>`;
+      el.classList.remove('hidden');
+    }
+
+    // duo-visual
+    $('#duo-visual').innerHTML = SSM.mattressSVG([
+      { levels: [2, 0, 0, 3, 2, 2, 3, 3, 1, 1], naam: 'Sanne · zijligger', bouw: 'schouders' },
+      { levels: [3, 2, 2, 3, 3, 3, 4, 4, 2, 2], naam: 'Mark · rugligger', bouw: 'normaal' }
+    ], 180, 210);
+    $('#duo-visual').style.maxWidth = '300px';
+    $('#duo-visual').style.margin = '0 auto';
+    $('#duo-legend').innerHTML = SSM.blocksLegend();
+    $('#levels').innerHTML = SSM.blocksLegend();
+    SSM.bindTips();
+
+    // winkelgegevens
+    $('#store-dl').innerHTML = `<dt>Adres</dt><dd>${STORE.straat}, ${STORE.postcode} ${STORE.plaats}</dd><dt>Telefoon</dt><dd><a href="${STORE.telHref}">${STORE.tel}</a></dd><dt>E-mail</dt><dd><a href="mailto:${STORE.email}">${STORE.email}</a></dd>`;
+    $('#store-hours').innerHTML = STORE.uren.map(u => `<tr><td>${u[0]}</td><td>${u[1]}</td></tr>`).join('');
+    $('#route-btn').href = STORE.route;
+    $('#call-btn').href = STORE.telHref;
+
+    // SlaapKwaliteitScore
+    const Q = [
+      { q: 'Hoe uitgerust word je meestal wakker?', o: [['Nooit', 0], ['Soms', 1], ['Vaak', 2], ['Altijd', 3]] },
+      { q: 'Hoe vaak word je ’s nachts wakker?', o: [['3× of vaker', 0], ['1–2×', 2], ['Bijna nooit', 3]] },
+      { q: 'Heb je bij het opstaan last van rug, nek of schouders?', o: [['Dagelijks', 0], ['Regelmatig', 1], ['Zelden', 2], ['Nooit', 3]] },
+      { q: 'Hoe is je bedklimaat?', o: [['Te warm / zweten', 1], ['Te koud', 1], ['Prima', 3]] },
+      { q: 'Hoe oud is je matras?', o: [['Ouder dan 10 jaar', 0], ['5–10 jaar', 2], ['Jonger dan 5 jaar', 3]] }
+    ];
+    $('#scan-form').innerHTML = Q.map((x, i) => `<div class="field"><label>${i + 1}. ${x.q}</label><div class="choices" style="grid-template-columns:repeat(auto-fit,minmax(88px,1fr))">${x.o.map((o, j) => `<label class="choice"><input type="radio" name="q${i}" value="${o[1]}" required><span style="text-align:center;align-items:center">${o[0]}</span></label>`).join('')}</div></div>`).join('') +
+      `<button class="btn btn-primary" type="submit">Bekijk mijn score</button>`;
+    $('#scan-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const f = new FormData(e.target);
+      let tot = 0; Q.forEach((x, i) => tot += Number(f.get('q' + i)));
+      const score = Math.round(tot / 15 * 100);
+      const db = load(); db.scans.unshift({ t: new Date().toISOString(), score }); save(db);
+      const goed = score >= 75;
+      const r = $('#scan-result');
+      r.innerHTML = `<span class="kicker">Jouw SlaapKwaliteitScore</span><div style="display:flex;align-items:baseline;gap:10px"><b style="font-size:3rem;line-height:1">${score}</b><span class="muted">/ 100</span></div>
+        <div class="progress" style="margin:12px 0 16px"><div style="width:${score}%"></div></div>
+        <p>${goed ? 'Je slaapt behoorlijk goed. Toch twijfels over je bed? Een meting laat zien of je ligging nog klopt.' : score >= 45 ? 'Er valt winst te halen. Een SlaapID-meting laat zien waar het in jouw nacht misgaat: in je houding, je bed of je bedklimaat.' : 'Je slaapt waarschijnlijk niet zo goed als je zou willen. Laat je slaap meten, dan weet je waar het aan ligt.'}</p>
+        <a class="btn btn-dark" href="aanvragen.html">Start je SlaapID-meting</a>`;
+      r.classList.remove('hidden');
+      r.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  })();
+  </script>
+</body>
+</html>
